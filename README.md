@@ -30,14 +30,13 @@ My projects on Github are more like a tutorial than a finished product: [bestia-
 
 ## CLI
 
-This is the CLI project inside a multi-project `dropbox_backup_to_external_disk_2`. It compiles into a CLI binary executable. All the user interface is inside this project.  
-The main dependency is to the library project that contains all the program logic.  I separated this projects to show how to use the same library from different binary projects. It is difficult to separate this two layers afterwards. They should be separated from the start.  
-Different user-interfaces need different workflows and the common library must allow this. Most of the calls to the library will be done in a separate thread to have the possibility of communication between the 2 layers (UI and logic). For example for progress bars and similar long running tasks.  
+This compiles into a CLI binary executable. All the user interface is inside this project.  
+The main dependency is to the library project `dropbox_backup_to_external_disk_lib` that contains all the program logic.  I separated this projects to show how to use the same library from different binary projects. It is difficult to separate this two layers afterwards. They should be separated from the start.  
+Different user-interfaces need different workflows and the common library must allow this. Modern computers and phones are all multi-core. Even javascript has multi-thread capabilities with web-workers. It is recommended to create multi-threaded applications. Most of the calls to the library will be done in a separate thread to have the possibility of communication between the 2 layers (UI and logic). For example for progress bars and similar long running tasks.  
 
 ## Development
 
-Every sub-project has its own automation_tasks_rs.  
-The super-project can have some task to work with all the sub-projects if needed. This is not a classic cargo rust workspace.
+I use cargo-auto to write all repetitive tasks in automation_tasks_rs.  
 
 ## Open-source and free as a beer
 
