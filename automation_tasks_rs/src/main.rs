@@ -141,6 +141,7 @@ fn task_build() {
 cd ~/rustprojects/dropbox_backup_to_external_disk_cli
 podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/debug/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
 sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
+    
     {YELLOW}Create auto-completion (only once):{RESET}
 {GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
@@ -186,6 +187,7 @@ fn task_release() {
 cd ~/rustprojects/dropbox_backup_to_external_disk_cli
 podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/release/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
 sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
+    
     {YELLOW}Create auto-completion (only once):{RESET}
 {GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
