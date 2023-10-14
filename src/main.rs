@@ -1,4 +1,4 @@
-// src/bin/dropbox_backup_to_external_disk.rs
+// dropbox_backup_to_external_disk_cli/src/bin.rs
 
 // CLI binary project around the library.
 // All work with input/output should be inside the bin project, and nothing in the lib project.
@@ -6,11 +6,16 @@
 // But to be interactive I cannot wait for a lib function to finish. The lib functions should be in another thread.
 // Then send msg to the bin main thread that print that to the screen.
 
+mod app_state_mod;
+mod crossterm_cli_mod;
+
+use crossterm_cli_mod::*;
+
 // use exported code from the lib project
-use dropbox_backup_to_external_disk::*;
+use dropbox_backup_to_external_disk_lib as lib;
 
 // define paths in bin, not in lib
-static APP_CONFIG: AppConfig = AppConfig {
+static APP_CONFIG: lib::AppConfig = lib::AppConfig {
     path_list_base_local_path: "temp_data/list_base_local_path.csv",
     path_list_source_files: "temp_data/list_source_files.csv",
     path_list_destination_files: "temp_data/list_destination_files.csv",
@@ -25,29 +30,6 @@ static APP_CONFIG: AppConfig = AppConfig {
     path_list_for_create_folders: "temp_data/list_for_create_folders.csv",
 };
 
-/// AppState struct contains only private fields.
-/// Those will be used as global mutable, but only using methods from AppStateTrait.
-#[derive(Debug)]
-struct AppState {
-    string_x: String,
-}
-
-/// implementation of AppStateTrait that is defined in the lib project
-impl AppStateTrait for AppState {
-    fn load_keys_from_io(&self) -> Result<(String, String), LibError> {
-        let master_key = std::env::var("DBX_KEY_1")?;
-        let token_enc = std::env::var("DBX_KEY_2")?;
-        dbg!(&master_key);
-        Ok((master_key, token_enc))
-    }
-    fn get_first_field(&self) -> String {
-        self.string_x.to_string()
-    }
-    fn set_first_field(&mut self, value: String) {
-        self.string_x = value;
-    }
-}
-
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
     /*     ctrlc::set_handler(move || {
@@ -57,7 +39,7 @@ fn main() -> anyhow::Result<()> {
     .expect("Error setting Ctrl-C handler"); */
 
     // init the global struct APP_STATE defined in the lib project
-    let _ = APP_STATE.set(std::sync::Mutex::new(Box::new(AppState { string_x: String::from("") })));
+    app_state_mod::init_app_state();
 
     //create the directory temp_data/
     std::fs::create_dir_all("temp_data").unwrap();
@@ -81,7 +63,7 @@ fn main() -> anyhow::Result<()> {
                 list_and_sync(path, &APP_CONFIG);
                 ns_print_ms("list_and_sync", ns_started);
             }
-            _ => println!("Unrecognized arguments. Try dropbox_backup_to_external_disk --help"),
+            _ => println!("Unrecognized arguments. Try dropbox_backup_to_external_disk_cli --help"),
         },
         Some("sync_only") => {
             let ns_started = ns_start("sync_only");
@@ -105,7 +87,7 @@ fn main() -> anyhow::Result<()> {
                 list_local(path, &APP_CONFIG);
                 ns_print_ms("local_list", ns_started);
             }
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk --help`"),
+            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
         },
         Some("all_list") => match env::args().nth(2).as_deref() {
             Some(path) => {
@@ -116,7 +98,7 @@ fn main() -> anyhow::Result<()> {
                 all_list_remote_and_local(path, &APP_CONFIG);
                 ns_print_ms("all_list", ns_started);
             }
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk --help`"),
+            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
         },
         Some("read_only_toggle") => {
             let ns_started = ns_start("read_only_toggle");
@@ -190,9 +172,9 @@ fn main() -> anyhow::Result<()> {
         }
         Some("one_file_download") => match env::args().nth(2).as_deref() {
             Some(path) => download_one_file(path, &APP_CONFIG),
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk --help`"),
+            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
         }, */
-        _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk --help`"),
+        _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
     }
     // TODO: receive msg from other threads
 
@@ -200,7 +182,7 @@ fn main() -> anyhow::Result<()> {
 }
 
 /// sub-command for bash auto-completion of `cargo auto` using the crate `dev_bestia_cargo_completion`
-/// `complete -C "dropbox_backup_to_external_disk completion" dropbox_backup_to_external_disk`
+/// `complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli`
 /// `complete -p`  - shows all the completion commands
 /// `complete -r xxx` - deletes a completion command
 fn completion() {
@@ -222,7 +204,7 @@ fn completion() {
     }
 
     let args: Vec<String> = std::env::args().collect();
-    // `complete -C "dropbox_backup_to_external_disk completion" dropbox_backup_to_external_disk`
+    // `complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli`
     // this completion always sends this arguments:
     // 0. executable path
     // 1. word completion
@@ -232,7 +214,7 @@ fn completion() {
     let word_being_completed = args[3].as_str();
     let last_word = args[4].as_str();
 
-    if last_word.ends_with("dropbox_backup_to_external_disk") {
+    if last_word.ends_with("dropbox_backup_to_external_disk_cli") {
         let sub_commands = vec![
             "--help",
             "-h",
@@ -268,7 +250,7 @@ fn completion() {
 fn print_help() {
     println!(
         r#"
-  {YELLOW}{BOLD}Welcome to dropbox_backup_to_external_disk{RESET}
+  {YELLOW}{BOLD}Welcome to dropbox_backup_to_external_disk_cli{RESET}
 
   {YELLOW}1. Before first use, create your private Dropbox app:{RESET}
   - Open browser on {GREEN}<https://www.dropbox.com/developers/apps?_tk=pilot_lp&_ad=topbar4&_camp=myapps>{RESET}
@@ -280,11 +262,13 @@ fn print_help() {
   - Open browser on {GREEN}<https://www.dropbox.com/developers/apps?_tk=pilot_lp&_ad=topbar4&_camp=myapps>{RESET}
   - Choose your existing private Dropbox app like {GREEN}`backup_{date}`{RESET}
   - Click button `Generate` to generated short-lived access token and copy it, close browser
-  - In you Linux terminal session store the token to use it then in multiple sequential commands in your current shell with eval:
-{GREEN}  eval $(dropbox_backup_to_external_disk encode_token){RESET}
+  - In you Linux terminal session run:
+{GREEN}  eval $(dropbox_backup_to_external_disk_cli encode_token){RESET}
+  - Paste the copied short-lived token with shift+ctr+v and press Enter.  
+  - The token is saved in env var and will be used in subsequent commands.
   - This temporary token will be deleted when the session ends.
   - Test if the authentication works:
-{GREEN}  dropbox_backup_to_external_disk test{RESET}
+{GREEN}  dropbox_backup_to_external_disk_cli test{RESET}
 
   {YELLOW}Commands:{RESET}
   Full list and sync - from dropbox to external disk
@@ -295,49 +279,49 @@ fn print_help() {
   You will need to rerun the command and wait for the lists to be fully completed.
   2. The second phase is the same as the command `sync_only`. 
   It can be interrupted with crl+c. The next `sync_only` will continue where it was interrupted.
-{GREEN}dropbox_backup_to_external_disk list_and_sync /mnt/d/DropBoxBackup1{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli list_and_sync /mnt/d/DropBoxBackup1{RESET}
 
   Sync only - one-way sync from dropbox to external disk
   It starts the sync only. Does NOT list again the remote and local files, the lists must already be completed 
   from the first command `list_and_sync`.
   It can be interrupted with crl+c. The next `sync_only` will continue where it was interrupted
-{GREEN}dropbox_backup_to_external_disk sync_only{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli sync_only{RESET}
 
   {YELLOW}Just for debugging purpose, you can run every step separately.{RESET}
   Test connection and authorization:
-{GREEN}dropbox_backup_to_external_disk test{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli test{RESET}
   List remote files from Dropbox to `{path_list_source_files}`:
-{GREEN}dropbox_backup_to_external_disk remote_list{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli remote_list{RESET}
   List local files to `{path_list_destination_files}`:
-{GREEN}dropbox_backup_to_external_disk local_list /mnt/d/DropBoxBackup1{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli local_list /mnt/d/DropBoxBackup1{RESET}
   List all - both remote and local files to `temp_date/`:
-{GREEN}dropbox_backup_to_external_disk all_list /mnt/d/DropBoxBackup1{RESET}  
+{GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/d/DropBoxBackup1{RESET}  
   Read-only files toggle `{path_list_for_readonly}`:
-{GREEN}dropbox_backup_to_external_disk read_only_toggle  {RESET}
+{GREEN}dropbox_backup_to_external_disk_cli read_only_toggle  {RESET}
   Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash}` and `{path_list_for_correct_time}`:
-{GREEN}dropbox_backup_to_external_disk compare_files{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli compare_files{RESET}
   Compare folders lists and generate `{path_list_for_trash_folders}`:
-{GREEN}dropbox_backup_to_external_disk compare_folders{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli compare_folders{RESET}
   Create folders from `{path_list_for_create_folders}`:
-{GREEN}dropbox_backup_to_external_disk create_folders{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli create_folders{RESET}
   Move or rename local files if they are equal in trash_from_list and download_from_list:
-{GREEN}dropbox_backup_to_external_disk move_or_rename_local_files{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli move_or_rename_local_files{RESET}
   Move to trash from `{path_list_for_trash_folders}`:
-{GREEN}dropbox_backup_to_external_disk trash_folders{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli trash_folders{RESET}
   Move to trash from `{path_list_for_trash}`:
-{GREEN}dropbox_backup_to_external_disk trash_from_list{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli trash_from_list{RESET}
   Correct time of files from `{path_list_for_correct_time}`:
-{GREEN}dropbox_backup_to_external_disk correct_time_from_list{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli correct_time_from_list{RESET}
   Download files from `{path_list_for_download}`:
-{GREEN}dropbox_backup_to_external_disk download_from_list{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli download_from_list{RESET}
   One single file download:
-{GREEN}dropbox_backup_to_external_disk one_file_download <path>{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli one_file_download <path>{RESET}
 
   For bash auto-completion:
-{GREEN}alias dropbox_backup_to_external_disk=./dropbox_backup_to_external_disk{RESET}
-{GREEN}complete -C "dropbox_backup_to_external_disk completion" dropbox_backup_to_external_disk{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./dropbox_backup_to_external_disk_cli{RESET}
+{GREEN}complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli{RESET}
 
-  Visit open-source repository: https://github.com/bestia-dev/dropbox_backup_to_external_disk
+  Visit open-source repository: https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli
     "#,
         path_list_source_files = APP_CONFIG.path_list_source_files,
         path_list_destination_files = APP_CONFIG.path_list_destination_files,
@@ -354,14 +338,14 @@ fn print_help() {
 /// Ask the user to paste the token interactively and press Enter. Then calculate the master_key and the token_enc.
 /// I need to store the token somewhere because the CLI can be executed many times sequentially.
 /// The result of the function must be correct bash commands. They must be executed in the current shell and not in a sub-shell.
-/// This command should be executed with `eval $(dropbox_backup_to_external_disk encode_token)` to store the env var in the current shell.
+/// This command should be executed with `eval $(dropbox_backup_to_external_disk_cli encode_token)` to store the env var in the current shell.
 /// Similar to how works `eval $(ssh-agent)`
 fn ui_encode_token() {
     /// Inner function is a separate function so I can use the `?` control flow.
-    fn ui_encode_token_inner() -> Result<(String, String), LibError> {
+    fn ui_encode_token_inner() -> Result<(String, String), lib::LibError> {
         //input secret token like password in command line
         let token = inquire::Password::new("").without_confirmation().prompt()?;
-        let (master_key, token_enc) = encode_token(token)?;
+        let (master_key, token_enc) = lib::encode_token(token)?;
         Ok((master_key, token_enc))
     }
 
@@ -374,7 +358,7 @@ export DBX_KEY_1={master_key}
 export DBX_KEY_2={token_enc}
 "#
         ),
-        Err(err) => println!("echo {}", err),
+        Err(err) => println!("echo {RED}{}{RESET}", err),
     }
 }
 
@@ -382,8 +366,8 @@ export DBX_KEY_2={token_enc}
 fn ui_test_connection() {
     // communicate errors to user here (if needed)
     // send function pointer
-    match test_connection() {
+    match lib::test_connection() {
         Ok(_) => println!("Test connection and authorization ok."),
-        Err(err) => println!("{}", err),
+        Err(err) => println!("{RED}{}{RESET}", err),
     }
 }

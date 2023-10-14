@@ -38,6 +38,71 @@ Different user-interfaces need different workflows and the common library must a
 
 I use cargo-auto to write all repetitive tasks in automation_tasks_rs.  
 
+## Try it
+
+There are a few manual steps for the security of you files on Dropbox. Authentication on internet is a complex topic.  
+You should be logged in Linux terminal (also in WSL2) with your account. So things you do in that session, are not visible to others. You will set some local environment variables that are private/secret to your linux Session.  After you logout from you Linux session these local environment variables will be deleted.  
+The executable will create a sub-directory `temp_data` in the current directory. Maybe it is best if you create a dedicated directory `~/dropbox_backup_to_external_disk_cli/` just for this executable and temp_data.
+Download the latest release from [Github](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/releases) and make the file executable and enable auto-completion:
+
+```bash
+cd ~
+mkdir dropbox_backup_to_external_disk_cli
+cd dropbox_backup_to_external_disk_cli
+
+curl -L https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/releases/latest/download/dropbox_backup_to_external_disk_cli --output dropbox_backup_to_external_disk_cli
+
+chmod +x dropbox_backup_to_external_disk_cli
+alias dropbox_backup_to_external_disk_cli=./dropbox_backup_to_external_disk_cli
+complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli
+
+dropbox_backup_to_external_disk_cli
+```
+
+Run the executable without arguments and follow carefully the instructions.  
+
+## Warning
+
+I don't know why, but WSL2 sometimes does not see all the folders of the external disk.  
+Instead of 12.000 folders it sees only 28 ???  
+Be careful !  
+Check it first with this commands to see if the removable disk is really mounted or you see a phantom cached file system.  
+
+```bash
+ls /mnt/d
+# and/or
+df
+```
+
+I then restart my Win10 and the problem magically disappears.
+
+## bash auto-completion
+
+This executable is prepared for auto-completion in bash.  
+Run this command to define auto-completion in bash for the current session:  
+
+```bash
+alias dropbox_backup_to_external_disk_cli=./dropbox_backup_to_external_disk_cli
+complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli
+```
+
+To make it permanent add this command to the file `~/.bashrc` or some other file that runs commands on bash initialization.  
+
+## Authorization OAuth2
+
+Authorization on the internet is a mess. Dropbox api uses OAuth2.
+Every app must be authorized on Dropbox and have its own `app key` and `app secret`.  
+For commercial programs they probably embed them into the binary code somehow. But for OpenSource projects it is not possible to keep a secret. So the workaround is: every user must create its own new `dropbox app` exclusive only to him. Creating a new app is simple. This app will stay forever in `development status` in dropbox, to be more private and secure. The  
+`$ dropbox_backup_to_external_disk_cli --help`  
+has the detailed instructions.  
+Then every time before use we need generate the "short-lived access token" for security reasons. There is the possibility to choose "no expiration" token, but I don't like it. Dropbox backup is used rarely and it is not super frustrating to make few clicks for security of your precious files. Having a "no expiration" token is like having another password for the hackers to try to hack. I like more the "short-lived" token. When I'm not using this backup program, there is no access token at all.  
+![dropbox_2](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_2.png "dropbox_2") ![dropbox_1](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_1.png "dropbox_1")
+Use this command to store the token (encrypted) in env variable. It will ask for your interactive input like a secret password.
+
+```bash
+dropbox_backup_to_external_disk_cli encode_token
+```
+
 ## Open-source and free as a beer
 
 My open-source projects are free as a beer (MIT license).  

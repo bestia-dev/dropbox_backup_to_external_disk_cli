@@ -1,4 +1,4 @@
-//! automation_tasks_rs for dropbox_backup_to_external_disk
+//! automation_tasks_rs for dropbox_backup_to_external_disk_cli
 
 use cargo_auto_lib::*;
 use cargo_auto_github_lib::*;
@@ -126,7 +126,7 @@ fn task_build() {
         r#"
     {YELLOW}After `cargo auto build`, run the compiled binary, examples and/or tests{RESET}
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk=./target/debug/{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./target/debug/{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
@@ -155,7 +155,7 @@ fn task_release() {
         r#"
     {YELLOW}After `cargo auto release`, run the compiled binary, examples and/or tests{RESET}
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk=./target/release/{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./target/release/{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
