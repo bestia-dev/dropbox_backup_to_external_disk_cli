@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
                 println!("{}{}{}local_list into {}{}", at_line(1), *CLEAR_LINE, *YELLOW, APP_CONFIG.path_list_destination_files, *RESET,);
                 lib::list_local(path, &APP_CONFIG);
                 */
-                save_ext_disk_base_path(path);
+                check_and_save_ext_disk_base_path(path);
             }
             _ => println!("{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
         },
@@ -248,7 +248,7 @@ fn print_help() {
     let path_list_for_readonly = app_config.ref_app_config().path_list_destination_readonly_files;
     let path_list_for_trash_folders = app_config.ref_app_config().path_list_destination_folders;
     let path_list_for_create_folders = app_config.ref_app_config().path_list_for_create_folders;
-    
+
     println!(
         r#"
   {YELLOW}{BOLD}Welcome to dropbox_backup_to_external_disk_cli{RESET}
@@ -366,7 +366,7 @@ fn ui_test_connection() {
 
 /// check if external disk base path exists and then
 /// saves the base local path for later use like "/mnt/d/DropBoxBackup1"
-fn save_ext_disk_base_path(ext_disk_base_path: &str) {
+fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) {
     if !std::path::Path::new(ext_disk_base_path).exists() {
         println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path);
         std::process::exit(1);

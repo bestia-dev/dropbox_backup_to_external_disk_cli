@@ -125,8 +125,24 @@ fn task_build() {
     println!(
         r#"
     {YELLOW}After `cargo auto build`, run the compiled binary, examples and/or tests{RESET}
+    
+    {YELLOW}If you compiled this inside the Rust_dev container like me, you cannot test it extensively, 
+    because you don't have access to the external disk or Dropbox website.
+    You need to copy the compiled file into your Bash terminal that has this permissions outside the container. 
+    Test this bash for correct access first:
+{GREEN}ls /mnt/d/DropBoxBackup1{RESET}
+    {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
+{GREEN}curl https://api.dropbox.com/oauth2/token -d code=X{RESET}
+    {YELLOW}This should return an error: The request parameters do not match any of the supported authorization flows.{RESET}
+    {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
+    
+    {YELLOW}Now we can create a dedicated folder and copy our compiled binary.{RESET}  
+{GREEN}mkdir -p ~/rustprojects/dropbox_backup_to_external_disk_cli
+cd ~/rustprojects/dropbox_backup_to_external_disk_cli
+podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/debug/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
+sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=./target/debug/{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
@@ -154,8 +170,24 @@ fn task_release() {
     println!(
         r#"
     {YELLOW}After `cargo auto release`, run the compiled binary, examples and/or tests{RESET}
+
+    {YELLOW}If you compiled this inside the Rust_dev container like me, you cannot test it extensively, 
+    because you don't have access to the external disk or Dropbox website.
+    You need to copy the compiled file into your Bash terminal that has this permissions outside the container. 
+    Test this bash for correct access first:
+{GREEN}ls /mnt/d/DropBoxBackup1{RESET}
+    {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
+{GREEN}curl https://api.dropbox.com/oauth2/token -d code=X{RESET}
+    {YELLOW}This should return an error: The request parameters do not match any of the supported authorization flows.{RESET}
+    {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
+    
+    {YELLOW}Now we can create a dedicated folder and copy our compiled binary.{RESET}  
+{GREEN}mkdir -p ~/rustprojects/dropbox_backup_to_external_disk_cli
+cd ~/rustprojects/dropbox_backup_to_external_disk_cli
+podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/release/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
+sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=./target/release/{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
