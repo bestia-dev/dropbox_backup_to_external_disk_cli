@@ -9,26 +9,13 @@
 mod app_state_mod;
 mod crossterm_cli_mod;
 
+use std::ops::Deref;
+
 use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-
-// define paths in bin, not in lib
-static APP_CONFIG: lib::AppConfig = lib::AppConfig {
-    path_list_base_local_path: "temp_data/list_base_local_path.csv",
-    path_list_source_files: "temp_data/list_source_files.csv",
-    path_list_destination_files: "temp_data/list_destination_files.csv",
-    path_list_source_folders: "temp_data/list_source_folders.csv",
-    path_list_destination_folders: "temp_data/list_destination_folders.csv",
-    path_list_destination_readonly_files: "temp_data/list_destination_readonly_files.csv",
-    path_list_for_download: "temp_data/list_for_download.csv",
-    path_list_for_trash: "temp_data/list_for_trash.csv",
-    path_list_for_correct_time: "temp_data/list_for_correct_time.csv",
-    path_list_just_downloaded_or_moved: "temp_data/list_just_downloaded_or_moved.csv",
-    path_list_for_trash_folders: "temp_data/list_for_trash_folders.csv",
-    path_list_for_create_folders: "temp_data/list_for_create_folders.csv",
-};
+use lib::{AppConfig, APP_STATE};
 
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
@@ -44,8 +31,8 @@ fn main() -> anyhow::Result<()> {
     //create the directory temp_data/
     std::fs::create_dir_all("temp_data").unwrap();
 
-    /*   let base_path = if std::path::Path::new(APP_CONFIG.path_list_base_local_path).exists() {
-        std::fs::read_to_string(APP_CONFIG.path_list_base_local_path).unwrap()
+    /*   let ext_disk_base_path = if std::path::Path::new(APP_CONFIG.path_list_ext_disk_base_path).exists() {
+        std::fs::read_to_string(APP_CONFIG.path_list_ext_disk_base_path).unwrap()
     } else {
         String::new()
     }; */
@@ -79,16 +66,18 @@ fn main() -> anyhow::Result<()> {
             list_remote(&APP_CONFIG);
             ns_print_ms("remote_list", ns_started);
         }
-        Some("local_list") => match env::args().nth(2).as_deref() {
+        */
+        Some("local_list") => match std::env::args().nth(2).as_deref() {
             Some(path) => {
-                print!("{}", *CLEAR_ALL);
+                /* print!("{}", *CLEAR_ALL);
                 println!("{}{}{}local_list into {}{}", at_line(1), *CLEAR_LINE, *YELLOW, APP_CONFIG.path_list_destination_files, *RESET,);
-                let ns_started = ns_start("");
-                list_local(path, &APP_CONFIG);
-                ns_print_ms("local_list", ns_started);
+                lib::list_local(path, &APP_CONFIG);
+                */
+                save_ext_disk_base_path(path);
             }
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
+            _ => println!("{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
         },
+        /*
         Some("all_list") => match env::args().nth(2).as_deref() {
             Some(path) => {
                 print!("{}", *CLEAR_ALL);
@@ -105,7 +94,7 @@ fn main() -> anyhow::Result<()> {
             println!("{}read_only_toggle{}", *YELLOW, *RESET);
             // open file as read and write
             let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_destination_readonly_files).unwrap();
-            read_only_toggle(&mut file_destination_readonly_files, &base_path);
+            read_only_toggle(&mut file_destination_readonly_files, &ext_disk_base_path);
             ns_print_ms("read_only_toggle", ns_started);
         }
         Some("compare_files") => {
@@ -131,22 +120,22 @@ fn main() -> anyhow::Result<()> {
             ns_print_ms("compare_folders", ns_started);
         }
         Some("create_folders") => {
-            if base_path.is_empty() {
-                println!("error: base_path is empty!");
+            if ext_disk_base_path.is_empty() {
+                println!("error: ext_disk_base_path is empty!");
             } else {
                 let ns_started = ns_start(&format!("create_folders {}", APP_CONFIG.path_list_for_create_folders));
                 let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders).unwrap();
-                create_folders(&mut file_list_for_create_folders, &base_path);
+                create_folders(&mut file_list_for_create_folders, &ext_disk_base_path);
                 ns_print_ms("create_folders", ns_started);
             }
         }
         Some("trash_folders") => {
-            if base_path.is_empty() {
-                println!("error: base_path is empty!");
+            if ext_disk_base_path.is_empty() {
+                println!("error: ext_disk_base_path is empty!");
             } else {
                 let ns_started = ns_start(&format!("trash_folders {}", APP_CONFIG.path_list_for_trash_folders));
                 let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders).unwrap();
-                trash_folders(&mut file_list_for_trash_folders, &base_path);
+                trash_folders(&mut file_list_for_trash_folders, &ext_disk_base_path);
                 ns_print_ms("trash_folders", ns_started);
             }
         }
@@ -248,6 +237,18 @@ fn completion() {
 
 /// print help
 fn print_help() {
+    let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
+    // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
+    let app_config = APP_STATE.get().unwrap().lock().unwrap();
+    let path_list_source_files = app_config.ref_app_config().path_list_source_files;
+    let path_list_destination_files = app_config.ref_app_config().path_list_destination_files;
+    let path_list_for_download = app_config.ref_app_config().path_list_for_download;
+    let path_list_for_correct_time = app_config.ref_app_config().path_list_for_correct_time;
+    let path_list_for_trash = app_config.ref_app_config().path_list_for_trash;
+    let path_list_for_readonly = app_config.ref_app_config().path_list_destination_readonly_files;
+    let path_list_for_trash_folders = app_config.ref_app_config().path_list_destination_folders;
+    let path_list_for_create_folders = app_config.ref_app_config().path_list_for_create_folders;
+    
     println!(
         r#"
   {YELLOW}{BOLD}Welcome to dropbox_backup_to_external_disk_cli{RESET}
@@ -322,16 +323,7 @@ fn print_help() {
 {GREEN}complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli{RESET}
 
   Visit open-source repository: https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli
-    "#,
-        path_list_source_files = APP_CONFIG.path_list_source_files,
-        path_list_destination_files = APP_CONFIG.path_list_destination_files,
-        path_list_for_download = APP_CONFIG.path_list_for_download,
-        path_list_for_correct_time = APP_CONFIG.path_list_for_correct_time,
-        path_list_for_trash = APP_CONFIG.path_list_for_trash,
-        path_list_for_readonly = APP_CONFIG.path_list_destination_readonly_files,
-        path_list_for_trash_folders = APP_CONFIG.path_list_destination_folders,
-        path_list_for_create_folders = APP_CONFIG.path_list_for_create_folders,
-        date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ"),
+    "#
     );
 }
 
@@ -370,4 +362,15 @@ fn ui_test_connection() {
         Ok(_) => println!("Test connection and authorization ok."),
         Err(err) => println!("{RED}{}{RESET}", err),
     }
+}
+
+/// check if external disk base path exists and then
+/// saves the base local path for later use like "/mnt/d/DropBoxBackup1"
+fn save_ext_disk_base_path(ext_disk_base_path: &str) {
+    if !std::path::Path::new(ext_disk_base_path).exists() {
+        println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path);
+        std::process::exit(1);
+    }
+    let store_path = APP_STATE.get().unwrap().lock().unwrap().ref_app_config().path_list_ext_disk_base_path;
+    std::fs::write(store_path, ext_disk_base_path).unwrap();
 }
