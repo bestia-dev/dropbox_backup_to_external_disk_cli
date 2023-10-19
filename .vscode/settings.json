@@ -1,4 +1,10 @@
 {
+    "workbench.colorCustomizations": {
+        "titleBar.activeForeground": "#fff",
+        "titleBar.inactiveForeground": "#ffffffcc",
+        "titleBar.activeBackground": "#8d3f4d",
+        "titleBar.inactiveBackground": "#8d3f4ccc"
+      },
     "cSpell.words": [
         "Alla",
         "bestia",

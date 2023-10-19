@@ -13,16 +13,23 @@ use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-use dropbox_backup_to_external_disk_lib::global_config;
+use dropbox_backup_to_external_disk_lib::{global_config, LibError};
 
-fn main() -> anyhow::Result<()> {
-    pretty_env_logger::init();
+fn main() {
     /*     ctrlc::set_handler(move || {
         println!("terminated with ctrl+c. {}", *UNHIDE_CURSOR);
         std::process::exit(exitcode::OK);
     })
     .expect("Error setting Ctrl-C handler"); */
+    pretty_env_logger::init();
+    // catch propagated errors and communicate errors to user or developer
+    match main_with_catch_errors() {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    }
+}
 
+fn main_with_catch_errors() -> Result<(), LibError> {
     // init the global struct APP_STATE defined in the lib project
     app_state_mod::init_app_state();
 
@@ -35,6 +42,13 @@ fn main() -> anyhow::Result<()> {
         String::new()
     }; */
 
+    // look at the arguments and route to appropriate function
+    // and catch errors and communicate errors to user or developer
+    argument_router()?;
+    Ok(())
+}
+/// look at the arguments and route to appropriate function
+fn argument_router() -> Result<(), LibError> {
     match std::env::args().nth(1).as_deref() {
         None | Some("--help") | Some("-h") => print_help(),
         Some("completion") => completion(),
@@ -67,10 +81,13 @@ fn main() -> anyhow::Result<()> {
         */
         Some("local_list") => match std::env::args().nth(2).as_deref() {
             Some(ext_disk_base_path) => {
-                check_and_save_ext_disk_base_path(ext_disk_base_path);
-                list_local();
+                check_and_save_ext_disk_base_path(ext_disk_base_path)?;
+                list_local()?;
+                Ok(())
             }
-            _ => println!("{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
+            None => Err(LibError::ErrorFromString(format!(
+                "{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
+            ))),
         },
         /*
         Some("all_list") => match env::args().nth(2).as_deref() {
@@ -158,18 +175,15 @@ fn main() -> anyhow::Result<()> {
             Some(path) => download_one_file(path, &APP_CONFIG),
             _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
         }, */
-        _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
+        _ => Err(LibError::ErrorFromStr("Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`")),
     }
-    // TODO: receive msg from other threads
-
-    Ok(())
 }
 
 /// sub-command for bash auto-completion of `cargo auto` using the crate `dev_bestia_cargo_completion`
 /// `complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli`
 /// `complete -p`  - shows all the completion commands
 /// `complete -r xxx` - deletes a completion command
-fn completion() {
+fn completion() -> Result<(), LibError> {
     /// println one, more or all sub_commands
     fn completion_return_one_or_more_sub_commands(sub_commands: Vec<&str>, word_being_completed: &str) {
         let mut sub_found = false;
@@ -228,10 +242,11 @@ fn completion() {
         let sub_commands = vec!["/mnt/d/DropboxBackup1"];
         completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
+    Ok(())
 }
 
 /// print help
-fn print_help() {
+fn print_help() -> Result<(), LibError> {
     let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
     // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
     let path_list_source_files = global_config().path_list_source_files;
@@ -319,6 +334,7 @@ fn print_help() {
   Visit open-source repository: https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli
     "#
     );
+    Ok(())
 }
 
 /// Ask the user to paste the token interactively and press Enter. Then calculate the master_key and the token_enc.
@@ -326,18 +342,12 @@ fn print_help() {
 /// The result of the function must be correct bash commands. They must be executed in the current shell and not in a sub-shell.
 /// This command should be executed with `eval $(dropbox_backup_to_external_disk_cli encode_token)` to store the env var in the current shell.
 /// Similar to how works `eval $(ssh-agent)`
-fn ui_encode_token() {
-    /// Inner function is a separate function so I can use the `?` control flow.
-    fn ui_encode_token_inner() -> Result<(String, String), lib::LibError> {
-        //input secret token like password in command line
-        let token = inquire::Password::new("").without_confirmation().prompt()?;
-        let (master_key, token_enc) = lib::encode_token(token)?;
-        Ok((master_key, token_enc))
-    }
-
+fn ui_encode_token() -> Result<(), LibError> {
+    //input secret token like password in command line
+    let token = inquire::Password::new("").without_confirmation().prompt()?;
     // return bash commands because of eval$(...) or
     // communicate errors to user - also as bash command because of eval$(...)
-    match ui_encode_token_inner() {
+    match lib::encode_token(token) {
         Ok((master_key, token_enc)) => println!(
             r#"
 export DBX_KEY_1={master_key}
@@ -346,102 +356,49 @@ export DBX_KEY_2={token_enc}
         ),
         Err(err) => println!("echo {RED}{}{RESET}", err),
     }
+    Ok(())
 }
 
 /// ui_test_connection
-fn ui_test_connection() {
+fn ui_test_connection() -> Result<(), LibError> {
     // communicate errors to user here (if needed)
     // send function pointer
     match lib::test_connection() {
-        Ok(_) => println!("Test connection and authorization ok."),
-        Err(err) => println!("{RED}{}{RESET}", err),
+        Ok(_) => {
+            println!("Test connection and authorization ok.");
+            Ok(())
+        }
+        Err(err) => Err(err),
     }
 }
 
 /// check if external disk base path exists and then
 /// saves the base local path for later use like "/mnt/d/DropBoxBackup1"
-fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) {
+fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), LibError> {
     if !std::path::Path::new(ext_disk_base_path).exists() {
         println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path);
         std::process::exit(1);
     }
     let store_path = global_config().path_list_ext_disk_base_path;
-    std::fs::write(store_path, ext_disk_base_path).unwrap();
+    std::fs::write(store_path, ext_disk_base_path)?;
+    Ok(())
 }
 
-/// the logic is in the LIB project, but all UI is in the CLI project
-/// they run on different threads and communicate
-/// It uses the global APP_STATE for all config data
-fn list_local() -> Result<(), lib::LibError> {
-    // empty the file. I want all or nothing result here if the process is terminated prematurely.
-    let mut file_list_destination_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
-    file_list_destination_files.empty()?;
-    let mut file_list_destination_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
-    file_list_destination_folders.empty()?;
-    let mut file_list_destination_readonly_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
-    file_list_destination_readonly_files.empty()?;
-    // just_loaded is obsolete once I got the fresh local list
-    let mut file_list_just_downloaded_or_moved = lib::FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
-    file_list_just_downloaded_or_moved.empty()?;
-    /*
-    // write data to a big string in memory (for my use-case it is >25 MB)
-    let mut files_string = String::with_capacity(40_000_000);
-    let mut folders_string = String::new();
-    let mut readonly_files_string = String::new();
-    use walkdir::WalkDir;
-    let base_path = std::fs::read_to_string(global_app_state().lock()?.ref_app_config().path_list_ext_disk_base_path)?;
-
-    let mut folder_count = 0;
-    let mut file_count = 0;
-    let mut last_print_ms = std::time::Instant::now();
-    for entry in WalkDir::new(&base_path) {
-        //let mut ns_started = ns_start("WalkDir entry start");
-        let entry: walkdir::DirEntry = entry?;
-        let path = entry.path();
-        let str_path = path.to_str()?;
-        // path.is_dir() is slow. entry.file-type().is_dir() is fast
-        if entry.file_type().is_dir() {
-            // I don't need the "base" folder in this list
-            if !str_path.trim_start_matches(&base_path).is_empty() {
-                folders_string.push_str(&format!("{}\n", str_path.trim_start_matches(&base_path),));
-                // TODO: don't print every folder, because print is slow. Check if 200ms passed
-                if last_print_ms.elapsed().as_millis() >= 200 {
-                    println!("{}{}Folder: {}", at_line(13), *CLEAR_LINE, shorten_string(str_path.trim_start_matches(&base_path), x_screen_len - 9),);
-                    println!("{}{}local_folder_count: {}", at_line(14), *CLEAR_LINE, folder_count);
-                    // it would be too much too print count for every single file
-                    println!("{}{}local_file_count: {}", at_line(15), *CLEAR_LINE, file_count);
-                    last_print_ms = std::time::Instant::now();
-                }
-                folder_count += 1;
-            }
-        } else {
-            // write csv tab delimited
-            // metadata() in wsl/Linux is slow. Nothing to do here.
-            //ns_started = ns_print("metadata start", ns_started);
-            if let Ok(metadata) = entry.metadata() {
-                //ns_started = ns_print("metadata end", ns_started);
-                use chrono::offset::Utc;
-                use chrono::DateTime;
-                let datetime: DateTime<Utc> = unwrap!(metadata.modified()).into();
-
-                if metadata.permissions().readonly() {
-                    readonly_files_string.push_str(&format!("{}\n", str_path.trim_start_matches(&base_path),));
-                }
-                files_string.push_str(&format!("{}\t{}\t{}\n", str_path.trim_start_matches(&base_path), datetime.format("%Y-%m-%dT%TZ"), metadata.len()));
-
-                file_count += 1;
-            }
+/// list in a new thread, then receive messages to print on screen
+fn list_local() -> Result<(), LibError> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let tx1 = tx.clone();
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_local(tx1) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
         }
-        //ns_print("WalkDir entry end", ns_started);
+    });
+
+    for received in rx {
+        println!("{received}");
     }
-    // region: sort
-    let files_sorted_string = crate::sort_string_lines(&files_string);
-    let folders_sorted_string = crate::sort_string_lines(&folders_string);
-    let readonly_files_sorted_string = crate::sort_string_lines(&readonly_files_string);
-    // end region: sort
-    file_list_destination_files.write_str(&files_sorted_string)?;
-    file_list_destination_folders.write_str(&folders_sorted_string)?;
-    file_list_destination_readonly_files.write_str(&readonly_files_sorted_string)?;
-    */
+
     Ok(())
 }
