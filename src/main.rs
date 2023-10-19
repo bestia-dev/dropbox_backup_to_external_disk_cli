@@ -397,7 +397,7 @@ fn list_local() -> Result<(), LibError> {
     });
 
     for received in rx {
-        println!("{received}");
+        println!("L1: {received}");
     }
 
     Ok(())
