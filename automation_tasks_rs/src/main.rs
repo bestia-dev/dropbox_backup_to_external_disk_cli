@@ -126,24 +126,18 @@ fn task_build() {
         r#"
     {YELLOW}After `cargo auto build`, run the compiled binary, examples and/or tests{RESET}
     
-    {YELLOW}If you compiled this inside the Rust_dev container like me, you cannot test it extensively, 
-    because you don't have access to the external disk or Dropbox website.
-    You need to copy the compiled file into your Bash terminal that has this permissions outside the container. 
-    Test this bash for correct access first:
-{GREEN}ls /mnt/d/DropBoxBackup1{RESET}
+    {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
+    The bash script to create the standard podman pod "rust_dev_pod" from the directory "docker_rust_development_install/pod_with_rust_vscode" does not provide this access.  
+    Use the slightly modified script from the directory "docker_rust_development_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
+    Test this bash for correct access:
+{GREEN}ls -la /mnt/e/DropBoxBackup2{RESET}
     {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
 {GREEN}curl https://api.dropbox.com/oauth2/token -d code=X{RESET}
     {YELLOW}This should return an error: The request parameters do not match any of the supported authorization flows.{RESET}
     {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
     
-    {YELLOW}Now we can create a dedicated folder and copy our compiled binary.{RESET}  
-{GREEN}mkdir -p ~/rustprojects/dropbox_backup_to_external_disk_cli
-cd ~/rustprojects/dropbox_backup_to_external_disk_cli
-podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/debug/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
-sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
-    
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./target/debug/{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
@@ -172,24 +166,18 @@ fn task_release() {
         r#"
     {YELLOW}After `cargo auto release`, run the compiled binary, examples and/or tests{RESET}
 
-    {YELLOW}If you compiled this inside the Rust_dev container like me, you cannot test it extensively, 
-    because you don't have access to the external disk or Dropbox website.
-    You need to copy the compiled file into your Bash terminal that has this permissions outside the container. 
-    Test this bash for correct access first:
-{GREEN}ls /mnt/d/DropBoxBackup1{RESET}
+    {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
+    The bash script to create the standard podman pod "rust_dev_pod" from the directory "docker_rust_development_install/pod_with_rust_vscode" does not provide this access.  
+    Use the slightly modified script from the directory "docker_rust_development_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
+    Test this bash for correct access:
+{GREEN}ls -la /mnt/e/DropBoxBackup2{RESET}
     {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
 {GREEN}curl https://api.dropbox.com/oauth2/token -d code=X{RESET}
     {YELLOW}This should return an error: The request parameters do not match any of the supported authorization flows.{RESET}
     {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
     
-    {YELLOW}Now we can create a dedicated folder and copy our compiled binary.{RESET}  
-{GREEN}mkdir -p ~/rustprojects/dropbox_backup_to_external_disk_cli
-cd ~/rustprojects/dropbox_backup_to_external_disk_cli
-podman cp rust_dev_vscode_cnt:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/release/dropbox_backup_to_external_disk_cli dropbox_backup_to_external_disk_cli
-sudo chmod +x dropbox_backup_to_external_disk_cli{RESET}
-    
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=./{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=.target/release/{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}

@@ -9,13 +9,11 @@
 mod app_state_mod;
 mod crossterm_cli_mod;
 
-use std::ops::Deref;
-
 use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-use lib::{AppConfig, APP_STATE};
+use dropbox_backup_to_external_disk_lib::global_config;
 
 fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
@@ -29,10 +27,10 @@ fn main() -> anyhow::Result<()> {
     app_state_mod::init_app_state();
 
     //create the directory temp_data/
-    std::fs::create_dir_all("temp_data").unwrap();
+    std::fs::create_dir_all("temp_data")?;
 
     /*   let ext_disk_base_path = if std::path::Path::new(APP_CONFIG.path_list_ext_disk_base_path).exists() {
-        std::fs::read_to_string(APP_CONFIG.path_list_ext_disk_base_path).unwrap()
+        std::fs::read_to_string(APP_CONFIG.path_list_ext_disk_base_path)?
     } else {
         String::new()
     }; */
@@ -68,12 +66,9 @@ fn main() -> anyhow::Result<()> {
         }
         */
         Some("local_list") => match std::env::args().nth(2).as_deref() {
-            Some(path) => {
-                /* print!("{}", *CLEAR_ALL);
-                println!("{}{}{}local_list into {}{}", at_line(1), *CLEAR_LINE, *YELLOW, APP_CONFIG.path_list_destination_files, *RESET,);
-                lib::list_local(path, &APP_CONFIG);
-                */
-                check_and_save_ext_disk_base_path(path);
+            Some(ext_disk_base_path) => {
+                check_and_save_ext_disk_base_path(ext_disk_base_path);
+                list_local();
             }
             _ => println!("{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
         },
@@ -93,7 +88,7 @@ fn main() -> anyhow::Result<()> {
             let ns_started = ns_start("read_only_toggle");
             println!("{}read_only_toggle{}", *YELLOW, *RESET);
             // open file as read and write
-            let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_destination_readonly_files).unwrap();
+            let mut file_destination_readonly_files = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_destination_readonly_files)?;
             read_only_toggle(&mut file_destination_readonly_files, &ext_disk_base_path);
             ns_print_ms("read_only_toggle", ns_started);
         }
@@ -106,10 +101,10 @@ fn main() -> anyhow::Result<()> {
         Some("compare_folders") => {
             let ns_started = ns_start("compare_folders");
             println!("{}compare remote and local folders{}", *YELLOW, *RESET);
-            let string_list_source_folder = std::fs::read_to_string(APP_CONFIG.path_list_source_folders).unwrap();
-            let string_list_destination_folders = std::fs::read_to_string(APP_CONFIG.path_list_destination_folders).unwrap();
-            let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders).unwrap();
-            let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders).unwrap();
+            let string_list_source_folder = std::fs::read_to_string(APP_CONFIG.path_list_source_folders)?;
+            let string_list_destination_folders = std::fs::read_to_string(APP_CONFIG.path_list_destination_folders)?;
+            let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
+            let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders)?;
             compare_folders(
                 &string_list_source_folder,
                 &string_list_destination_folders,
@@ -124,7 +119,7 @@ fn main() -> anyhow::Result<()> {
                 println!("error: ext_disk_base_path is empty!");
             } else {
                 let ns_started = ns_start(&format!("create_folders {}", APP_CONFIG.path_list_for_create_folders));
-                let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders).unwrap();
+                let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders)?;
                 create_folders(&mut file_list_for_create_folders, &ext_disk_base_path);
                 ns_print_ms("create_folders", ns_started);
             }
@@ -134,7 +129,7 @@ fn main() -> anyhow::Result<()> {
                 println!("error: ext_disk_base_path is empty!");
             } else {
                 let ns_started = ns_start(&format!("trash_folders {}", APP_CONFIG.path_list_for_trash_folders));
-                let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders).unwrap();
+                let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
                 trash_folders(&mut file_list_for_trash_folders, &ext_disk_base_path);
                 ns_print_ms("trash_folders", ns_started);
             }
@@ -239,15 +234,14 @@ fn completion() {
 fn print_help() {
     let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
     // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
-    let app_config = APP_STATE.get().unwrap().lock().unwrap();
-    let path_list_source_files = app_config.ref_app_config().path_list_source_files;
-    let path_list_destination_files = app_config.ref_app_config().path_list_destination_files;
-    let path_list_for_download = app_config.ref_app_config().path_list_for_download;
-    let path_list_for_correct_time = app_config.ref_app_config().path_list_for_correct_time;
-    let path_list_for_trash = app_config.ref_app_config().path_list_for_trash;
-    let path_list_for_readonly = app_config.ref_app_config().path_list_destination_readonly_files;
-    let path_list_for_trash_folders = app_config.ref_app_config().path_list_destination_folders;
-    let path_list_for_create_folders = app_config.ref_app_config().path_list_for_create_folders;
+    let path_list_source_files = global_config().path_list_source_files;
+    let path_list_destination_files = global_config().path_list_destination_files;
+    let path_list_for_download = global_config().path_list_for_download;
+    let path_list_for_correct_time = global_config().path_list_for_correct_time;
+    let path_list_for_trash = global_config().path_list_for_trash;
+    let path_list_for_readonly = global_config().path_list_destination_readonly_files;
+    let path_list_for_trash_folders = global_config().path_list_destination_folders;
+    let path_list_for_create_folders = global_config().path_list_for_create_folders;
 
     println!(
         r#"
@@ -264,12 +258,12 @@ fn print_help() {
   - Choose your existing private Dropbox app like {GREEN}`backup_{date}`{RESET}
   - Click button `Generate` to generated short-lived access token and copy it, close browser
   - In you Linux terminal session run:
-{GREEN}  eval $(dropbox_backup_to_external_disk_cli encode_token){RESET}
+{GREEN}eval $(dropbox_backup_to_external_disk_cli encode_token){RESET}
   - Paste the copied short-lived token with shift+ctr+v and press Enter.  
   - The token is saved in env var and will be used in subsequent commands.
   - This temporary token will be deleted when the session ends.
   - Test if the authentication works:
-{GREEN}  dropbox_backup_to_external_disk_cli test{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli test{RESET}
 
   {YELLOW}Commands:{RESET}
   Full list and sync - from dropbox to external disk
@@ -371,6 +365,83 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) {
         println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path);
         std::process::exit(1);
     }
-    let store_path = APP_STATE.get().unwrap().lock().unwrap().ref_app_config().path_list_ext_disk_base_path;
+    let store_path = global_config().path_list_ext_disk_base_path;
     std::fs::write(store_path, ext_disk_base_path).unwrap();
+}
+
+/// the logic is in the LIB project, but all UI is in the CLI project
+/// they run on different threads and communicate
+/// It uses the global APP_STATE for all config data
+fn list_local() -> Result<(), lib::LibError> {
+    // empty the file. I want all or nothing result here if the process is terminated prematurely.
+    let mut file_list_destination_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
+    file_list_destination_files.empty()?;
+    let mut file_list_destination_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
+    file_list_destination_folders.empty()?;
+    let mut file_list_destination_readonly_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    file_list_destination_readonly_files.empty()?;
+    // just_loaded is obsolete once I got the fresh local list
+    let mut file_list_just_downloaded_or_moved = lib::FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
+    file_list_just_downloaded_or_moved.empty()?;
+    /*
+    // write data to a big string in memory (for my use-case it is >25 MB)
+    let mut files_string = String::with_capacity(40_000_000);
+    let mut folders_string = String::new();
+    let mut readonly_files_string = String::new();
+    use walkdir::WalkDir;
+    let base_path = std::fs::read_to_string(global_app_state().lock()?.ref_app_config().path_list_ext_disk_base_path)?;
+
+    let mut folder_count = 0;
+    let mut file_count = 0;
+    let mut last_print_ms = std::time::Instant::now();
+    for entry in WalkDir::new(&base_path) {
+        //let mut ns_started = ns_start("WalkDir entry start");
+        let entry: walkdir::DirEntry = entry?;
+        let path = entry.path();
+        let str_path = path.to_str()?;
+        // path.is_dir() is slow. entry.file-type().is_dir() is fast
+        if entry.file_type().is_dir() {
+            // I don't need the "base" folder in this list
+            if !str_path.trim_start_matches(&base_path).is_empty() {
+                folders_string.push_str(&format!("{}\n", str_path.trim_start_matches(&base_path),));
+                // TODO: don't print every folder, because print is slow. Check if 200ms passed
+                if last_print_ms.elapsed().as_millis() >= 200 {
+                    println!("{}{}Folder: {}", at_line(13), *CLEAR_LINE, shorten_string(str_path.trim_start_matches(&base_path), x_screen_len - 9),);
+                    println!("{}{}local_folder_count: {}", at_line(14), *CLEAR_LINE, folder_count);
+                    // it would be too much too print count for every single file
+                    println!("{}{}local_file_count: {}", at_line(15), *CLEAR_LINE, file_count);
+                    last_print_ms = std::time::Instant::now();
+                }
+                folder_count += 1;
+            }
+        } else {
+            // write csv tab delimited
+            // metadata() in wsl/Linux is slow. Nothing to do here.
+            //ns_started = ns_print("metadata start", ns_started);
+            if let Ok(metadata) = entry.metadata() {
+                //ns_started = ns_print("metadata end", ns_started);
+                use chrono::offset::Utc;
+                use chrono::DateTime;
+                let datetime: DateTime<Utc> = unwrap!(metadata.modified()).into();
+
+                if metadata.permissions().readonly() {
+                    readonly_files_string.push_str(&format!("{}\n", str_path.trim_start_matches(&base_path),));
+                }
+                files_string.push_str(&format!("{}\t{}\t{}\n", str_path.trim_start_matches(&base_path), datetime.format("%Y-%m-%dT%TZ"), metadata.len()));
+
+                file_count += 1;
+            }
+        }
+        //ns_print("WalkDir entry end", ns_started);
+    }
+    // region: sort
+    let files_sorted_string = crate::sort_string_lines(&files_string);
+    let folders_sorted_string = crate::sort_string_lines(&folders_string);
+    let readonly_files_sorted_string = crate::sort_string_lines(&readonly_files_string);
+    // end region: sort
+    file_list_destination_files.write_str(&files_sorted_string)?;
+    file_list_destination_folders.write_str(&folders_sorted_string)?;
+    file_list_destination_readonly_files.write_str(&readonly_files_sorted_string)?;
+    */
+    Ok(())
 }
