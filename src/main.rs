@@ -81,8 +81,7 @@ fn argument_router() -> Result<(), LibError> {
         */
         Some("local_list") => match std::env::args().nth(2).as_deref() {
             Some(ext_disk_base_path) => {
-                check_and_save_ext_disk_base_path(ext_disk_base_path)?;
-                list_local()?;
+                list_local(ext_disk_base_path)?;
                 Ok(())
             }
             None => Err(LibError::ErrorFromString(format!(
@@ -385,9 +384,10 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), Lib
 }
 
 /// list in a new thread, then receive messages to print on screen
-fn list_local() -> Result<(), LibError> {
+fn list_local(ext_disk_base_path: &str) -> Result<(), LibError> {
+    check_and_save_ext_disk_base_path(ext_disk_base_path)?;
     let (tx, rx) = std::sync::mpsc::channel();
-    let tx1 = tx.clone();
+    let tx1=tx.clone();
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
         match lib::list_local(tx1) {
@@ -396,6 +396,10 @@ fn list_local() -> Result<(), LibError> {
         }
     });
 
+    // tx can be cloned multiple times
+    // all tx clones must be dropped, so the receiver iterator can finish
+    drop(tx);
+    
     for received in rx {
         println!("L1: {received}");
     }
