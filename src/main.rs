@@ -185,7 +185,7 @@ fn completion() -> Result<(), LibError> {
                 sub_found = true;
             }
         }
-        if sub_found == false {
+        if !sub_found {
             // print all sub-commands
             for sub_command in sub_commands.iter() {
                 println!("{}", sub_command);
@@ -413,25 +413,6 @@ fn remote_list() -> Result<(), LibError> {
     for received in ui_rx {
         println!("{}", received.0,);
     }
-
-    /*
-        // the receiver reads all msgs from the queue, until senders exist - drop(tx)
-        let mut all_folder_count = 0;
-        let mut all_file_count = 0;
-        for msg in &rx {
-            let (folder_list, file_list, folder_count, file_count) = msg;
-            if let Some(folder_list) = folder_list {
-                folder_list_all.extend_from_slice(&folder_list);
-            }
-            if let Some(file_list) = file_list {
-                file_list_all.extend_from_slice(&file_list);
-            }
-            all_folder_count += folder_count;
-            all_file_count += file_count;
-            println!("{}{}remote_folder_count: {}", at_line(7), *CLEAR_LINE, all_folder_count);
-            println!("{}{}remote_file_count: {}", at_line(8), *CLEAR_LINE, all_file_count);
-        }
-    */
 
     Ok(())
 }
