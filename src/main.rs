@@ -70,24 +70,17 @@ fn argument_router() -> Result<(), LibError> {
             sync_only(&APP_CONFIG);
             ns_print_ms("sync_only", ns_started);
         }
-        Some("remote_list") => {
-            print!("{}", *CLEAR_ALL);
-            println!("{}{}{}remote_list into {}{}", at_line(1), *CLEAR_LINE, *YELLOW, APP_CONFIG.path_list_source_files, *RESET,);
-            let ns_started = ns_start("");
-            test_connection();
-            list_remote(&APP_CONFIG);
-            ns_print_ms("remote_list", ns_started);
-        }
         */
-        Some("local_list") => match std::env::args().nth(2).as_deref() {
-            Some(ext_disk_base_path) => {
-                list_local(ext_disk_base_path)?;
-                Ok(())
+        Some("remote_list") => remote_list(),
+        Some("local_list") => {
+            // the command local_list must have 1 argument: the path to external disk folder
+            match std::env::args().nth(2).as_deref() {
+                Some(ext_disk_base_path) => list_local(ext_disk_base_path),
+                None => Err(LibError::ErrorFromString(format!(
+                    "{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
+                ))),
             }
-            None => Err(LibError::ErrorFromString(format!(
-                "{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
-            ))),
-        },
+        }
         /*
         Some("all_list") => match env::args().nth(2).as_deref() {
             Some(path) => {
@@ -386,23 +379,59 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), Lib
 /// list in a new thread, then receive messages to print on screen
 fn list_local(ext_disk_base_path: &str) -> Result<(), LibError> {
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
-    let (tx, rx) = std::sync::mpsc::channel();
-    let tx1=tx.clone();
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
-        match lib::list_local(tx1) {
+        match lib::list_local(ui_tx) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
     });
 
-    // tx can be cloned multiple times
-    // all tx clones must be dropped, so the receiver iterator can finish
-    drop(tx);
-    
-    for received in rx {
+    //receiver iterator
+    for received in ui_rx {
         println!("L1: {received}");
     }
+
+    Ok(())
+}
+
+fn remote_list() -> Result<(), LibError> {
+    ui_test_connection()?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_remote(ui_tx) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}", received.0,);
+    }
+
+    /*
+        // the receiver reads all msgs from the queue, until senders exist - drop(tx)
+        let mut all_folder_count = 0;
+        let mut all_file_count = 0;
+        for msg in &rx {
+            let (folder_list, file_list, folder_count, file_count) = msg;
+            if let Some(folder_list) = folder_list {
+                folder_list_all.extend_from_slice(&folder_list);
+            }
+            if let Some(file_list) = file_list {
+                file_list_all.extend_from_slice(&file_list);
+            }
+            all_folder_count += folder_count;
+            all_file_count += file_count;
+            println!("{}{}remote_folder_count: {}", at_line(7), *CLEAR_LINE, all_folder_count);
+            println!("{}{}remote_file_count: {}", at_line(8), *CLEAR_LINE, all_file_count);
+        }
+    */
 
     Ok(())
 }
