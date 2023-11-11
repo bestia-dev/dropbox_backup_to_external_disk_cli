@@ -86,15 +86,8 @@ fn argument_router() -> Result<(), LibError> {
                 None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
             }
         }
+        Some("read_only_remove") => read_only_remove(),
         /*
-        Some("read_only_toggle") => {
-            let ns_started = ns_start("read_only_toggle");
-            println!("{}read_only_toggle{}", *YELLOW, *RESET);
-            // open file as read and write
-            let mut file_destination_readonly_files = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_destination_readonly_files)?;
-            read_only_toggle(&mut file_destination_readonly_files, &ext_disk_base_path);
-            ns_print_ms("read_only_toggle", ns_started);
-        }
         Some("compare_files") => {
             let ns_started = ns_start("compare lists");
             println!("{}compare remote and local files{}", *YELLOW, *RESET);
@@ -206,7 +199,7 @@ fn completion() -> Result<(), LibError> {
             "compare_files",
             "compare_folders",
             "create_folders",
-            "read_only_toggle",
+            "read_only_remove",
             "correct_time_from_list",
             "download_from_list",
             "list_and_sync",
@@ -293,7 +286,7 @@ fn print_help() -> Result<(), LibError> {
   List all - both remote and local files to `temp_date/`:
 {GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/d/DropBoxBackup1{RESET}  
   Read-only files toggle `{path_list_for_readonly}`:
-{GREEN}dropbox_backup_to_external_disk_cli read_only_toggle  {RESET}
+{GREEN}dropbox_backup_to_external_disk_cli read_only_remove  {RESET}
   Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash}` and `{path_list_for_correct_time}`:
 {GREEN}dropbox_backup_to_external_disk_cli compare_files{RESET}
   Compare folders lists and generate `{path_list_for_trash_folders}`:
@@ -370,6 +363,14 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), Lib
     Ok(())
 }
 
+/// read ext_disk_base_path from file path_list_ext_disk_base_path
+fn get_ext_disk_base_path() -> Result<String, LibError> {
+    let store_path = global_config().path_list_ext_disk_base_path;
+    let ext_disk_base_path = std::fs::read_to_string(store_path)?;
+    // return
+    Ok(ext_disk_base_path)
+}
+
 /// list in a new thread, then receive messages to print on screen
 fn local_list(ext_disk_base_path: &str) -> Result<(), LibError> {
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
@@ -438,6 +439,29 @@ fn all_list(ext_disk_base_path: &str) -> Result<(), LibError> {
     //receiver iterator
     for received in ui_rx {
         println!("{}: {}", received.1, received.0);
+    }
+
+    Ok(())
+}
+
+/// The backup files must not be readonly to allow copying the modified file from the remote.
+fn read_only_remove() -> Result<(), LibError> {
+    println!("{YELLOW}remove readonly attribute from files{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut file_destination_readonly_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::read_only_remove(&mut file_destination_readonly_files, &ext_disk_base_path, ui_tx) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}", received);
     }
 
     Ok(())
