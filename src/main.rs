@@ -73,26 +73,20 @@ fn argument_router() -> Result<(), LibError> {
         */
         Some("remote_list") => remote_list(),
         Some("local_list") => {
-            // the command local_list must have 1 argument: the path to external disk folder
+            // the command local_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
-                Some(ext_disk_base_path) => list_local(ext_disk_base_path),
-                None => Err(LibError::ErrorFromString(format!(
-                    "{RED}Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
-                ))),
+                Some(ext_disk_base_path) => local_list(ext_disk_base_path),
+                None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
+            }
+        }
+        Some("all_list") => {
+            // the command all_list must have 1 argument: the path to local external disk folder
+            match std::env::args().nth(2).as_deref() {
+                Some(ext_disk_base_path) => all_list(ext_disk_base_path),
+                None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
             }
         }
         /*
-        Some("all_list") => match env::args().nth(2).as_deref() {
-            Some(path) => {
-                print!("{}", *CLEAR_ALL);
-                println!("{}{}{}remote and local lists into temp_data{}", at_line(1), *CLEAR_LINE, *YELLOW, *RESET);
-                let ns_started = ns_start("");
-                test_connection();
-                all_list_remote_and_local(path, &APP_CONFIG);
-                ns_print_ms("all_list", ns_started);
-            }
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
-        },
         Some("read_only_toggle") => {
             let ns_started = ns_start("read_only_toggle");
             println!("{}read_only_toggle{}", *YELLOW, *RESET);
@@ -377,7 +371,7 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), Lib
 }
 
 /// list in a new thread, then receive messages to print on screen
-fn list_local(ext_disk_base_path: &str) -> Result<(), LibError> {
+fn local_list(ext_disk_base_path: &str) -> Result<(), LibError> {
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -391,7 +385,7 @@ fn list_local(ext_disk_base_path: &str) -> Result<(), LibError> {
 
     //receiver iterator
     for received in ui_rx {
-        println!("L1: {received}");
+        println!("{}: {}", received.1, received.0);
     }
 
     Ok(())
@@ -412,6 +406,38 @@ fn remote_list() -> Result<(), LibError> {
     //receiver iterator
     for received in ui_rx {
         println!("{}", received.0,);
+    }
+
+    Ok(())
+}
+
+/// list local and remote in a multiple threads, then receive messages to print on screen
+fn all_list(ext_disk_base_path: &str) -> Result<(), LibError> {
+    check_and_save_ext_disk_base_path(ext_disk_base_path)?;
+    ui_test_connection()?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_clone_1 = ui_tx.clone();
+    // local
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_local(ui_tx_clone_1) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+    // remote
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_remote(ui_tx) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}: {}", received.1, received.0);
     }
 
     Ok(())
