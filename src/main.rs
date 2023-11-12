@@ -446,7 +446,7 @@ fn all_list(ext_disk_base_path: &str) -> Result<(), LibError> {
 
 /// The backup files must not be readonly to allow copying the modified file from the remote.
 fn read_only_remove() -> Result<(), LibError> {
-    println!("{YELLOW}remove readonly attribute from files{RESET}");
+    println!("{YELLOW}Remove readonly attribute from files.{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let mut file_destination_readonly_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
     // channel for thread communication for user interface
