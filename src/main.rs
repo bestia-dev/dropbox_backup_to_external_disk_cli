@@ -87,29 +87,11 @@ fn argument_router() -> Result<(), LibError> {
             }
         }
         Some("read_only_remove") => read_only_remove(),
+        Some("compare_files") => compare_files(),
+        Some("compare_folders") => compare_folders(),
         /*
-        Some("compare_files") => {
-            let ns_started = ns_start("compare lists");
-            println!("{}compare remote and local files{}", *YELLOW, *RESET);
-            compare_files(&APP_CONFIG);
-            ns_print_ms("compare_files", ns_started);
-        }
-        Some("compare_folders") => {
-            let ns_started = ns_start("compare_folders");
-            println!("{}compare remote and local folders{}", *YELLOW, *RESET);
-            let string_list_source_folder = std::fs::read_to_string(APP_CONFIG.path_list_source_folders)?;
-            let string_list_destination_folders = std::fs::read_to_string(APP_CONFIG.path_list_destination_folders)?;
-            let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
-            let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders)?;
-            compare_folders(
-                &string_list_source_folder,
-                &string_list_destination_folders,
-                &mut file_list_for_trash_folders,
-                &mut file_list_for_create_folders,
-            );
-            println!("Created files: list_for_trash_folders.csv and list_for_create_folders.csv");
-            ns_print_ms("compare_folders", ns_started);
-        }
+
+
         Some("create_folders") => {
             if ext_disk_base_path.is_empty() {
                 println!("error: ext_disk_base_path is empty!");
@@ -454,6 +436,56 @@ fn read_only_remove() -> Result<(), LibError> {
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
         match lib::read_only_remove(&mut file_destination_readonly_files, &ext_disk_base_path, ui_tx) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}", received);
+    }
+
+    Ok(())
+}
+
+/// compare files
+fn compare_files() -> Result<(), LibError> {
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::compare_files(ui_tx, global_config()) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}", received);
+    }
+
+    Ok(())
+}
+
+/// compare folders
+fn compare_folders() -> Result<(), LibError> {
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let string_list_source_folder = lib::FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
+    let string_list_destination_folders = lib::FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
+    let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+    let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::compare_folders(
+            ui_tx,
+            &string_list_source_folder,
+            &string_list_destination_folders,
+            &mut file_list_for_trash_folders,
+            &mut file_list_for_create_folders,
+        ) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
