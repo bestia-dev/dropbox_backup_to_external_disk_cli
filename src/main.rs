@@ -9,18 +9,21 @@
 mod app_state_mod;
 mod crossterm_cli_mod;
 
+use std::path::{Path, PathBuf};
+
 use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
 use dropbox_backup_to_external_disk_lib::{global_config, LibError};
+use lib::FileTxt;
 
 fn main() {
     /*     ctrlc::set_handler(move || {
         println!("terminated with ctrl+c. {}", *UNHIDE_CURSOR);
         std::process::exit(exitcode::OK);
     })
-    .expect("Error setting Ctrl-C handler"); */
+    .expect("Bug: setting Ctrl-C handler"); */
     pretty_env_logger::init();
     // catch propagated errors and communicate errors to user or developer
     match main_with_catch_errors() {
@@ -75,47 +78,32 @@ fn argument_router() -> Result<(), LibError> {
         Some("local_list") => {
             // the command local_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
-                Some(ext_disk_base_path) => local_list(ext_disk_base_path),
+                Some(ext_disk_base_path) => local_list(Path::new(ext_disk_base_path)),
                 None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
             }
         }
         Some("all_list") => {
             // the command all_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
-                Some(ext_disk_base_path) => all_list(ext_disk_base_path),
+                Some(ext_disk_base_path) => all_list(Path::new(ext_disk_base_path)),
                 None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
             }
         }
         Some("read_only_remove") => read_only_remove(),
         Some("compare_files") => compare_files(),
         Some("compare_folders") => compare_folders(),
+        Some("create_folders") => create_folders(),
+        Some("move_or_rename_local_files") => move_or_rename_local_files(),
         /*
-
-
-        Some("create_folders") => {
-            if ext_disk_base_path.is_empty() {
-                println!("error: ext_disk_base_path is empty!");
-            } else {
-                let ns_started = ns_start(&format!("create_folders {}", APP_CONFIG.path_list_for_create_folders));
-                let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_create_folders)?;
-                create_folders(&mut file_list_for_create_folders, &ext_disk_base_path);
-                ns_print_ms("create_folders", ns_started);
-            }
-        }
         Some("trash_folders") => {
             if ext_disk_base_path.is_empty() {
                 println!("error: ext_disk_base_path is empty!");
             } else {
                 let ns_started = ns_start(&format!("trash_folders {}", APP_CONFIG.path_list_for_trash_folders));
-                let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
+                let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
                 trash_folders(&mut file_list_for_trash_folders, &ext_disk_base_path);
                 ns_print_ms("trash_folders", ns_started);
             }
-        }
-        Some("move_or_rename_local_files") => {
-            let ns_started = ns_start("move_or_rename_local_files");
-            move_or_rename_local_files(&APP_CONFIG);
-            ns_print_ms("move_or_rename_local_files", ns_started);
         }
         Some("trash_from_list") => {
             let ns_started = ns_start(&format!("trash from {}", APP_CONFIG.path_list_for_trash));
@@ -210,14 +198,14 @@ fn completion() -> Result<(), LibError> {
 fn print_help() -> Result<(), LibError> {
     let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
     // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
-    let path_list_source_files = global_config().path_list_source_files;
-    let path_list_destination_files = global_config().path_list_destination_files;
-    let path_list_for_download = global_config().path_list_for_download;
-    let path_list_for_correct_time = global_config().path_list_for_correct_time;
-    let path_list_for_trash = global_config().path_list_for_trash;
-    let path_list_for_readonly = global_config().path_list_destination_readonly_files;
-    let path_list_for_trash_folders = global_config().path_list_destination_folders;
-    let path_list_for_create_folders = global_config().path_list_for_create_folders;
+    let path_list_source_files = global_config().path_list_source_files.to_string_lossy();
+    let path_list_destination_files = global_config().path_list_destination_files.to_string_lossy();
+    let path_list_for_download = global_config().path_list_for_download.to_string_lossy();
+    let path_list_for_correct_time = global_config().path_list_for_correct_time.to_string_lossy();
+    let path_list_for_trash = global_config().path_list_for_trash.to_string_lossy();
+    let path_list_for_readonly = global_config().path_list_destination_readonly_files.to_string_lossy();
+    let path_list_for_trash_folders = global_config().path_list_destination_folders.to_string_lossy();
+    let path_list_for_create_folders = global_config().path_list_for_create_folders.to_string_lossy();
 
     println!(
         r#"
@@ -335,42 +323,63 @@ fn ui_test_connection() -> Result<(), LibError> {
 
 /// check if external disk base path exists and then
 /// saves the base local path for later use like "/mnt/d/DropBoxBackup1"
-fn check_and_save_ext_disk_base_path(ext_disk_base_path: &str) -> Result<(), LibError> {
-    if !std::path::Path::new(ext_disk_base_path).exists() {
-        println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path);
+fn check_and_save_ext_disk_base_path(ext_disk_base_path: &Path) -> Result<(), LibError> {
+    if !ext_disk_base_path.exists() {
+        println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path.to_string_lossy());
         std::process::exit(1);
     }
     let store_path = global_config().path_list_ext_disk_base_path;
-    std::fs::write(store_path, ext_disk_base_path)?;
+    std::fs::write(store_path, ext_disk_base_path.to_string_lossy().as_bytes())?;
     Ok(())
 }
 
 /// read ext_disk_base_path from file path_list_ext_disk_base_path
-fn get_ext_disk_base_path() -> Result<String, LibError> {
+fn get_ext_disk_base_path() -> Result<PathBuf, LibError> {
     let store_path = global_config().path_list_ext_disk_base_path;
     let ext_disk_base_path = std::fs::read_to_string(store_path)?;
+    let ext_disk_base_path = std::path::PathBuf::from(&ext_disk_base_path);
+    if ext_disk_base_path.to_string_lossy().is_empty() {
+        return Err(LibError::ErrorFromStr("ext_disk_base_path is empty!"));
+    }
     // return
     Ok(ext_disk_base_path)
 }
 
 /// list in a new thread, then receive messages to print on screen
-fn local_list(ext_disk_base_path: &str) -> Result<(), LibError> {
+fn local_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_local(ui_tx) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
-        }
-    });
+    spawn_list_local(ui_tx)?;
 
     //receiver iterator
     for received in ui_rx {
         println!("{}: {}", received.1, received.0);
     }
 
+    Ok(())
+}
+
+fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
+    let base_path = FileTxt::open_for_read(global_config().path_list_ext_disk_base_path)?.read_to_string()?;
+    let file_list_destination_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
+    let file_list_destination_folders = FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
+    let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    let file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_local(
+            ui_tx,
+            base_path,
+            file_list_destination_files,
+            file_list_destination_folders,
+            file_list_destination_readonly_files,
+            file_list_just_downloaded_or_moved,
+        ) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
     Ok(())
 }
 
@@ -378,45 +387,7 @@ fn remote_list() -> Result<(), LibError> {
     ui_test_connection()?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_remote(ui_tx) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
-        }
-    });
-
-    //receiver iterator
-    for received in ui_rx {
-        println!("{}", received.0,);
-    }
-
-    Ok(())
-}
-
-/// list local and remote in a multiple threads, then receive messages to print on screen
-fn all_list(ext_disk_base_path: &str) -> Result<(), LibError> {
-    check_and_save_ext_disk_base_path(ext_disk_base_path)?;
-    ui_test_connection()?;
-    // channel for thread communication for user interface
-    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_clone_1 = ui_tx.clone();
-    // local
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_local(ui_tx_clone_1) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
-        }
-    });
-    // remote
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_remote(ui_tx) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
-        }
-    });
+    spawn_list_remote(ui_tx.clone())?;
 
     //receiver iterator
     for received in ui_rx {
@@ -426,11 +397,43 @@ fn all_list(ext_disk_base_path: &str) -> Result<(), LibError> {
     Ok(())
 }
 
+/// list local and remote in a multiple threads, then receive messages to print on screen
+fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
+    check_and_save_ext_disk_base_path(ext_disk_base_path)?;
+    ui_test_connection()?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+
+    spawn_list_local(ui_tx.clone())?;
+    spawn_list_remote(ui_tx.clone())?;
+    drop(ui_tx);
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}: {}", received.1, received.0);
+    }
+
+    Ok(())
+}
+
+fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
+    let file_list_source_files = FileTxt::open_for_read_and_write(global_config().path_list_source_files)?;
+    let file_list_source_folders = FileTxt::open_for_read_and_write(global_config().path_list_source_folders)?;
+    std::thread::spawn(move || {
+        // catch propagated errors and communicate errors to user or developer
+        match lib::list_remote(ui_tx, file_list_source_files, file_list_source_folders) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
+    });
+    Ok(())
+}
+
 /// The backup files must not be readonly to allow copying the modified file from the remote.
 fn read_only_remove() -> Result<(), LibError> {
     println!("{YELLOW}Remove readonly attribute from files.{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_destination_readonly_files = lib::FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
@@ -473,10 +476,10 @@ fn compare_files() -> Result<(), LibError> {
 fn compare_folders() -> Result<(), LibError> {
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let string_list_source_folder = lib::FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
-    let string_list_destination_folders = lib::FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
-    let mut file_list_for_trash_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
-    let mut file_list_for_create_folders = lib::FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+    let string_list_source_folder = FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
+    let string_list_destination_folders = FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
+    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
         match lib::compare_folders(
@@ -494,6 +497,56 @@ fn compare_folders() -> Result<(), LibError> {
     //receiver iterator
     for received in ui_rx {
         println!("{}", received);
+    }
+
+    Ok(())
+}
+
+// create folders
+fn create_folders() -> Result<(), LibError> {
+    println!("{YELLOW}Create folders from list.{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || match lib::create_folders(&mut file_list_for_create_folders, &ext_disk_base_path, ui_tx) {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    });
+
+    //receiver iterator
+    for received in ui_rx {
+        println!("{}", received);
+    }
+
+    Ok(())
+}
+
+// move or rename local files
+fn move_or_rename_local_files() -> Result<(), LibError> {
+    println!("{YELLOW}Move or rename local files{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut path_list_for_trash = FileTxt::open_for_read_and_write(global_config().path_list_for_trash)?;
+    let mut path_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(
+        move || match lib::move_or_rename_local_files(&ext_disk_base_path, &mut path_list_for_trash, &mut path_list_for_download, ui_tx) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        },
+    );
+
+    //receiver iterator
+    for received in ui_rx {
+        if received == "." {
+            // this special character is like a progress bar
+            print!("{}", received);
+            std::io::Write::flush(&mut std::io::stdout()).ok().expect("Could not flush stdout");
+        } else {
+            println!("{}", received);
+        }
     }
 
     Ok(())

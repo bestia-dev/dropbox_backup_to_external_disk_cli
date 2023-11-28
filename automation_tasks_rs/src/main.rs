@@ -177,7 +177,7 @@ fn task_release() {
     {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
     
     {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=.target/release/{package_name}{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./target/release/{package_name}{RESET}
 {GREEN}complete -C "{package_name} completion" {package_name}{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
