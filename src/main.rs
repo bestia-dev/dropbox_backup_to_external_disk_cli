@@ -110,11 +110,6 @@ fn argument_router() -> Result<(), LibError> {
             trash_from_list(&APP_CONFIG);
             ns_print_ms("trash_from_list", ns_started);
         }
-        Some("correct_time_from_list") => {
-            let ns_started = ns_start(&format!("correct time of files from {}", APP_CONFIG.path_list_for_correct_time));
-            correct_time_from_list(&APP_CONFIG);
-            ns_print_ms("correct_time_from_list", ns_started);
-        }
         Some("download_from_list") => {
             let ns_started = ns_start(&format!("download from {}", APP_CONFIG.path_list_for_download));
             download_from_list(&APP_CONFIG);
@@ -170,7 +165,6 @@ fn completion() -> Result<(), LibError> {
             "compare_folders",
             "create_folders",
             "read_only_remove",
-            "correct_time_from_list",
             "download_from_list",
             "list_and_sync",
             "local_list",
@@ -201,7 +195,6 @@ fn print_help() -> Result<(), LibError> {
     let path_list_source_files = global_config().path_list_source_files.to_string_lossy();
     let path_list_destination_files = global_config().path_list_destination_files.to_string_lossy();
     let path_list_for_download = global_config().path_list_for_download.to_string_lossy();
-    let path_list_for_correct_time = global_config().path_list_for_correct_time.to_string_lossy();
     let path_list_for_trash = global_config().path_list_for_trash.to_string_lossy();
     let path_list_for_readonly = global_config().path_list_destination_readonly_files.to_string_lossy();
     let path_list_for_trash_folders = global_config().path_list_destination_folders.to_string_lossy();
@@ -257,7 +250,7 @@ fn print_help() -> Result<(), LibError> {
 {GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/d/DropBoxBackup1{RESET}  
   Read-only files toggle `{path_list_for_readonly}`:
 {GREEN}dropbox_backup_to_external_disk_cli read_only_remove  {RESET}
-  Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash}` and `{path_list_for_correct_time}`:
+  Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash}`:
 {GREEN}dropbox_backup_to_external_disk_cli compare_files{RESET}
   Compare folders lists and generate `{path_list_for_trash_folders}`:
 {GREEN}dropbox_backup_to_external_disk_cli compare_folders{RESET}
@@ -269,8 +262,6 @@ fn print_help() -> Result<(), LibError> {
 {GREEN}dropbox_backup_to_external_disk_cli trash_folders{RESET}
   Move to trash from `{path_list_for_trash}`:
 {GREEN}dropbox_backup_to_external_disk_cli trash_from_list{RESET}
-  Correct time of files from `{path_list_for_correct_time}`:
-{GREEN}dropbox_backup_to_external_disk_cli correct_time_from_list{RESET}
   Download files from `{path_list_for_download}`:
 {GREEN}dropbox_backup_to_external_disk_cli download_from_list{RESET}
   One single file download:
@@ -345,14 +336,35 @@ fn get_ext_disk_base_path() -> Result<PathBuf, LibError> {
     Ok(ext_disk_base_path)
 }
 
+/// empty lists created by compare
+pub fn empty_lists_compared() -> Result<(), LibError> {
+    // empty the files, they will be created by compare
+    let mut file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    file_list_destination_readonly_files.empty()?;
+    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+    file_list_for_create_folders.empty()?;
+    let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+    file_list_for_download.empty()?;
+    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+    file_list_for_trash_folders.empty()?;
+    let mut file_list_for_trash = FileTxt::open_for_read_and_write(global_config().path_list_for_trash)?;
+    file_list_for_trash.empty()?;
+    let mut file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
+    file_list_just_downloaded_or_moved.empty()?;
+    Ok(())
+}
+
 /// list in a new thread, then receive messages to print on screen
 fn local_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
+    println!("{YELLOW}List local.{RESET}");
+    empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    spawn_list_local(ui_tx)?;
+    spawn_list_local(ui_tx.clone())?;
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}: {}", received.1, received.0);
     }
@@ -365,17 +377,10 @@ fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<
     let file_list_destination_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
     let file_list_destination_folders = FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
     let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
-    let file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
+
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
-        match lib::list_local(
-            ui_tx,
-            base_path,
-            file_list_destination_files,
-            file_list_destination_folders,
-            file_list_destination_readonly_files,
-            file_list_just_downloaded_or_moved,
-        ) {
+        match lib::list_local(ui_tx, base_path, file_list_destination_files, file_list_destination_folders, file_list_destination_readonly_files) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
@@ -384,12 +389,15 @@ fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<
 }
 
 fn remote_list() -> Result<(), LibError> {
+    println!("{YELLOW}List remote.{RESET}");
+    empty_lists_compared()?;
     ui_test_connection()?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     spawn_list_remote(ui_tx.clone())?;
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}: {}", received.1, received.0);
     }
@@ -399,6 +407,8 @@ fn remote_list() -> Result<(), LibError> {
 
 /// list local and remote in a multiple threads, then receive messages to print on screen
 fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
+    println!("{YELLOW}List local and remote.{RESET}");
+    empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
     ui_test_connection()?;
     // channel for thread communication for user interface
@@ -406,9 +416,9 @@ fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
 
     spawn_list_local(ui_tx.clone())?;
     spawn_list_remote(ui_tx.clone())?;
-    drop(ui_tx);
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}: {}", received.1, received.0);
     }
@@ -436,15 +446,17 @@ fn read_only_remove() -> Result<(), LibError> {
     let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
-        match lib::read_only_remove(&mut file_destination_readonly_files, &ext_disk_base_path, ui_tx) {
+        match lib::read_only_remove(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_destination_readonly_files) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
     });
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}", received);
     }
@@ -454,17 +466,20 @@ fn read_only_remove() -> Result<(), LibError> {
 
 /// compare files
 fn compare_files() -> Result<(), LibError> {
+    println!("{YELLOW}Compare files.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
-        match lib::compare_files(ui_tx, global_config()) {
+        match lib::compare_files(ui_tx_move_to_closure, global_config()) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
     });
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}", received);
     }
@@ -474,8 +489,10 @@ fn compare_files() -> Result<(), LibError> {
 
 /// compare folders
 fn compare_folders() -> Result<(), LibError> {
+    println!("{YELLOW}Compare folders.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
     let string_list_source_folder = FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
     let string_list_destination_folders = FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
     let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
@@ -483,7 +500,7 @@ fn compare_folders() -> Result<(), LibError> {
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
         match lib::compare_folders(
-            ui_tx,
+            ui_tx_move_to_closure,
             &string_list_source_folder,
             &string_list_destination_folders,
             &mut file_list_for_trash_folders,
@@ -495,6 +512,7 @@ fn compare_folders() -> Result<(), LibError> {
     });
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}", received);
     }
@@ -509,12 +527,14 @@ fn create_folders() -> Result<(), LibError> {
     let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || match lib::create_folders(&mut file_list_for_create_folders, &ext_disk_base_path, ui_tx) {
+    let ui_tx_move_to_closure = ui_tx.clone();
+    std::thread::spawn(move || match lib::create_folders(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_create_folders) {
         Ok(()) => (),
         Err(err) => println!("{RED}{err}{RESET}"),
     });
 
     //receiver iterator
+    drop(ui_tx);
     for received in ui_rx {
         println!("{}", received);
     }
@@ -531,21 +551,30 @@ fn move_or_rename_local_files() -> Result<(), LibError> {
 
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(
-        move || match lib::move_or_rename_local_files(&ext_disk_base_path, &mut path_list_for_trash, &mut path_list_for_download, ui_tx) {
+        move || match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash, &mut path_list_for_download) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         },
     );
 
     //receiver iterator
+    drop(ui_tx);
+    let mut is_last_progress_bar = false;
     for received in ui_rx {
         if received == "." {
             // this special character is like a progress bar
             print!("{}", received);
             std::io::Write::flush(&mut std::io::stdout()).ok().expect("Could not flush stdout");
+            is_last_progress_bar = true;
         } else {
-            println!("{}", received);
+            if is_last_progress_bar {
+                // just newline, if last print was for progress_bar
+                println!("");
+            } else {
+                println!("{}", received);
+            }
         }
     }
 
