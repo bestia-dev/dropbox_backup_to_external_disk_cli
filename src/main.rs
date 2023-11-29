@@ -94,22 +94,9 @@ fn argument_router() -> Result<(), LibError> {
         Some("compare_folders") => compare_folders(),
         Some("create_folders") => create_folders(),
         Some("move_or_rename_local_files") => move_or_rename_local_files(),
+        Some("trash_files") => trash_files(),
+        Some("trash_folders") => trash_folders(),
         /*
-        Some("trash_folders") => {
-            if ext_disk_base_path.is_empty() {
-                println!("error: ext_disk_base_path is empty!");
-            } else {
-                let ns_started = ns_start(&format!("trash_folders {}", APP_CONFIG.path_list_for_trash_folders));
-                let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(APP_CONFIG.path_list_for_trash_folders)?;
-                trash_folders(&mut file_list_for_trash_folders, &ext_disk_base_path);
-                ns_print_ms("trash_folders", ns_started);
-            }
-        }
-        Some("trash_from_list") => {
-            let ns_started = ns_start(&format!("trash from {}", APP_CONFIG.path_list_for_trash));
-            trash_from_list(&APP_CONFIG);
-            ns_print_ms("trash_from_list", ns_started);
-        }
         Some("download_from_list") => {
             let ns_started = ns_start(&format!("download from {}", APP_CONFIG.path_list_for_download));
             download_from_list(&APP_CONFIG);
@@ -176,7 +163,7 @@ fn completion() -> Result<(), LibError> {
             "sync_only",
             "test",
             "trash_folders",
-            "trash_from_list",
+            "trash_files",
         ];
         completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
@@ -195,7 +182,7 @@ fn print_help() -> Result<(), LibError> {
     let path_list_source_files = global_config().path_list_source_files.to_string_lossy();
     let path_list_destination_files = global_config().path_list_destination_files.to_string_lossy();
     let path_list_for_download = global_config().path_list_for_download.to_string_lossy();
-    let path_list_for_trash = global_config().path_list_for_trash.to_string_lossy();
+    let path_list_for_trash_files = global_config().path_list_for_trash_files.to_string_lossy();
     let path_list_for_readonly = global_config().path_list_destination_readonly_files.to_string_lossy();
     let path_list_for_trash_folders = global_config().path_list_destination_folders.to_string_lossy();
     let path_list_for_create_folders = global_config().path_list_for_create_folders.to_string_lossy();
@@ -250,18 +237,18 @@ fn print_help() -> Result<(), LibError> {
 {GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/d/DropBoxBackup1{RESET}  
   Read-only files toggle `{path_list_for_readonly}`:
 {GREEN}dropbox_backup_to_external_disk_cli read_only_remove  {RESET}
-  Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash}`:
+  Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash_files}`:
 {GREEN}dropbox_backup_to_external_disk_cli compare_files{RESET}
   Compare folders lists and generate `{path_list_for_trash_folders}`:
 {GREEN}dropbox_backup_to_external_disk_cli compare_folders{RESET}
   Create folders from `{path_list_for_create_folders}`:
 {GREEN}dropbox_backup_to_external_disk_cli create_folders{RESET}
-  Move or rename local files if they are equal in trash_from_list and download_from_list:
+  Move or rename local files if they are equal in trash_files and download_from_list:
 {GREEN}dropbox_backup_to_external_disk_cli move_or_rename_local_files{RESET}
   Move to trash from `{path_list_for_trash_folders}`:
 {GREEN}dropbox_backup_to_external_disk_cli trash_folders{RESET}
-  Move to trash from `{path_list_for_trash}`:
-{GREEN}dropbox_backup_to_external_disk_cli trash_from_list{RESET}
+  Move to trash from `{path_list_for_trash_files}`:
+{GREEN}dropbox_backup_to_external_disk_cli trash_files{RESET}
   Download files from `{path_list_for_download}`:
 {GREEN}dropbox_backup_to_external_disk_cli download_from_list{RESET}
   One single file download:
@@ -347,8 +334,8 @@ pub fn empty_lists_compared() -> Result<(), LibError> {
     file_list_for_download.empty()?;
     let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
     file_list_for_trash_folders.empty()?;
-    let mut file_list_for_trash = FileTxt::open_for_read_and_write(global_config().path_list_for_trash)?;
-    file_list_for_trash.empty()?;
+    let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+    file_list_for_trash_files.empty()?;
     let mut file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
     file_list_just_downloaded_or_moved.empty()?;
     Ok(())
@@ -546,14 +533,14 @@ fn create_folders() -> Result<(), LibError> {
 fn move_or_rename_local_files() -> Result<(), LibError> {
     println!("{YELLOW}Move or rename local files{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut path_list_for_trash = FileTxt::open_for_read_and_write(global_config().path_list_for_trash)?;
+    let mut path_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
     let mut path_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
 
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(
-        move || match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash, &mut path_list_for_download) {
+        move || match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash_files, &mut path_list_for_download) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         },
@@ -576,6 +563,50 @@ fn move_or_rename_local_files() -> Result<(), LibError> {
                 println!("{}", received);
             }
         }
+    }
+
+    Ok(())
+}
+
+// trash files from list
+fn trash_files() -> Result<(), LibError> {
+    println!("{YELLOW}Trash files from list{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
+    std::thread::spawn(move || match lib::trash_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_trash_files) {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    });
+
+    //receiver iterator
+    drop(ui_tx);
+    for received in ui_rx {
+        println!("{}", received);
+    }
+
+    Ok(())
+}
+
+// trash folders
+fn trash_folders() -> Result<(), LibError> {
+    println!("{YELLOW}Trash folders{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
+    std::thread::spawn(move || match lib::trash_folders(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_trash_folders) {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    });
+
+    //receiver iterator
+    drop(ui_tx);
+    for received in ui_rx {
+        println!("{}", received);
     }
 
     Ok(())
