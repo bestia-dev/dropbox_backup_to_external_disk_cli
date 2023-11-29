@@ -96,16 +96,17 @@ fn argument_router() -> Result<(), LibError> {
         Some("move_or_rename_local_files") => move_or_rename_local_files(),
         Some("trash_files") => trash_files(),
         Some("trash_folders") => trash_folders(),
+        Some("one_file_download") => match std::env::args().nth(2).as_deref() {
+            Some(path_str) => download_one_file(path_str),
+            None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
+        },
         /*
         Some("download_from_list") => {
             let ns_started = ns_start(&format!("download from {}", APP_CONFIG.path_list_for_download));
             download_from_list(&APP_CONFIG);
             ns_print_ms("download_from_list", ns_started);
         }
-        Some("one_file_download") => match env::args().nth(2).as_deref() {
-            Some(path) => download_one_file(path, &APP_CONFIG),
-            _ => println!("Unrecognized arguments. Try `dropbox_backup_to_external_disk_cli --help`"),
-        }, */
+        */
         _ => Err(LibError::ErrorFromStr("Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`")),
     }
 }
@@ -607,6 +608,28 @@ fn trash_folders() -> Result<(), LibError> {
     drop(ui_tx);
     for received in ui_rx {
         println!("{}", received);
+    }
+
+    Ok(())
+}
+
+// download one file
+fn download_one_file(path_str: &str) -> Result<(), LibError> {
+    println!("{YELLOW}Download one file{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let path_to_download = PathBuf::from(path_str);
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
+    std::thread::spawn(move || match lib::download_one_file(ui_tx_move_to_closure, &ext_disk_base_path, &path_to_download) {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    });
+
+    //receiver iterator
+    drop(ui_tx);
+    for received in ui_rx {
+        println!("{}: {}", received.1, received.0);
     }
 
     Ok(())
