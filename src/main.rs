@@ -100,13 +100,7 @@ fn argument_router() -> Result<(), LibError> {
             Some(path_str) => download_one_file(path_str),
             None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
         },
-        /*
-        Some("download_from_list") => {
-            let ns_started = ns_start(&format!("download from {}", APP_CONFIG.path_list_for_download));
-            download_from_list(&APP_CONFIG);
-            ns_print_ms("download_from_list", ns_started);
-        }
-        */
+        Some("download_from_list") => download_from_list(),
         _ => Err(LibError::ErrorFromStr("Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`")),
     }
 }
@@ -622,6 +616,28 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(move || match lib::download_one_file(ui_tx_move_to_closure, &ext_disk_base_path, &path_to_download) {
+        Ok(()) => (),
+        Err(err) => println!("{RED}{err}{RESET}"),
+    });
+
+    //receiver iterator
+    drop(ui_tx);
+    for received in ui_rx {
+        println!("{}: {}", received.1, received.0);
+    }
+
+    Ok(())
+}
+
+// download from list
+fn download_from_list() -> Result<(), LibError> {
+    println!("{YELLOW}Download from list{RESET}");
+    let ext_disk_base_path = get_ext_disk_base_path()?;
+    let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+    // channel for thread communication for user interface
+    let (ui_tx, ui_rx) = std::sync::mpsc::channel();
+    let ui_tx_move_to_closure = ui_tx.clone();
+    std::thread::spawn(move || match lib::download_from_list(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_download) {
         Ok(()) => (),
         Err(err) => println!("{RED}{err}{RESET}"),
     });
