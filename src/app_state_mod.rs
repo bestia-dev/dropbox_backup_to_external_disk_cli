@@ -51,6 +51,8 @@ pub fn init_app_state() {
         path_list_just_downloaded_or_moved: Path::new("temp_data/list_just_downloaded_or_moved.csv"),
         path_list_for_trash_folders: Path::new("temp_data/list_for_trash_folders.csv"),
         path_list_for_create_folders: Path::new("temp_data/list_for_create_folders.csv"),
+        path_powershell_script_change_readonly: Path::new("temp_data/powershell_script_change_readonly.ps"),
+        path_powershell_script_change_modified_datetime: Path::new("temp_data/powershell_script_change_modified_datetime.ps"),
     };
     let string_proba_mutex = std::sync::Mutex::new(String::from("proba"));
     let _ = lib::APP_STATE.set(Box::new(AppState { app_config, string_proba_mutex }));

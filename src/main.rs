@@ -164,7 +164,7 @@ fn completion() -> Result<(), LibError> {
     }
     // the second level if needed
     else if last_word == "list_and_sync" || last_word == "local_list" || last_word == "all_list" {
-        let sub_commands = vec!["/mnt/d/DropboxBackup1"];
+        let sub_commands = vec!["/mnt/e/DropboxBackup2"];
         completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
     Ok(())
@@ -213,7 +213,7 @@ fn print_help() -> Result<(), LibError> {
   You will need to rerun the command and wait for the lists to be fully completed.
   2. The second phase is the same as the command `sync_only`. 
   It can be interrupted with crl+c. The next `sync_only` will continue where it was interrupted.
-{GREEN}dropbox_backup_to_external_disk_cli list_and_sync /mnt/d/DropBoxBackup1{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli list_and_sync /mnt/e/DropBoxBackup2{RESET}
 
   Sync only - one-way sync from dropbox to external disk
   It starts the sync only. Does NOT list again the remote and local files, the lists must already be completed 
@@ -227,9 +227,9 @@ fn print_help() -> Result<(), LibError> {
   List remote files from Dropbox to `{path_list_source_files}`:
 {GREEN}dropbox_backup_to_external_disk_cli remote_list{RESET}
   List local files to `{path_list_destination_files}`:
-{GREEN}dropbox_backup_to_external_disk_cli local_list /mnt/d/DropBoxBackup1{RESET}
+{GREEN}dropbox_backup_to_external_disk_cli local_list /mnt/e/DropBoxBackup2{RESET}
   List all - both remote and local files to `temp_date/`:
-{GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/d/DropBoxBackup1{RESET}  
+{GREEN}dropbox_backup_to_external_disk_cli all_list /mnt/e/DropBoxBackup2{RESET}  
   Read-only files toggle `{path_list_for_readonly}`:
 {GREEN}dropbox_backup_to_external_disk_cli read_only_remove  {RESET}
   Compare file lists and generate `{path_list_for_download}`, `{path_list_for_trash_files}`:
@@ -295,7 +295,7 @@ fn ui_test_connection() -> Result<(), LibError> {
 }
 
 /// check if external disk base path exists and then
-/// saves the base local path for later use like "/mnt/d/DropBoxBackup1"
+/// saves the base local path for later use like "/mnt/e/DropBoxBackup2"
 fn check_and_save_ext_disk_base_path(ext_disk_base_path: &Path) -> Result<(), LibError> {
     if !ext_disk_base_path.exists() {
         println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path.to_string_lossy());
@@ -333,6 +333,10 @@ pub fn empty_lists_compared() -> Result<(), LibError> {
     file_list_for_trash_files.empty()?;
     let mut file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
     file_list_just_downloaded_or_moved.empty()?;
+    let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
+    file_powershell_script_change_readonly.empty()?;
+    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
+    file_powershell_script_change_modified_datetime.empty()?;
     Ok(())
 }
 
@@ -426,12 +430,18 @@ fn read_only_remove() -> Result<(), LibError> {
     println!("{YELLOW}Remove readonly attribute from files.{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
     std::thread::spawn(move || {
         // catch propagated errors and communicate errors to user or developer
-        match lib::read_only_remove(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_destination_readonly_files) {
+        match lib::read_only_remove(
+            ui_tx_move_to_closure,
+            &ext_disk_base_path,
+            &mut file_destination_readonly_files,
+            &mut file_powershell_script_change_readonly,
+        ) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
         }
@@ -612,13 +622,16 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
     println!("{YELLOW}Download one file{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let path_to_download = PathBuf::from(path_str);
+    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || match lib::download_one_file(ui_tx_move_to_closure, &ext_disk_base_path, &path_to_download) {
-        Ok(()) => (),
-        Err(err) => println!("{RED}{err}{RESET}"),
-    });
+    std::thread::spawn(
+        move || match lib::download_one_file(ui_tx_move_to_closure, &ext_disk_base_path, &path_to_download, &mut file_powershell_script_change_modified_datetime) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        },
+    );
 
     //receiver iterator
     drop(ui_tx);
@@ -634,12 +647,20 @@ fn download_from_list() -> Result<(), LibError> {
     println!("{YELLOW}Download from list{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || match lib::download_from_list(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_download) {
-        Ok(()) => (),
-        Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn(move || {
+        match lib::download_from_list(
+            ui_tx_move_to_closure,
+            &ext_disk_base_path,
+            &mut file_list_for_download,
+            &mut file_powershell_script_change_modified_datetime,
+        ) {
+            Ok(()) => (),
+            Err(err) => println!("{RED}{err}{RESET}"),
+        }
     });
 
     //receiver iterator
