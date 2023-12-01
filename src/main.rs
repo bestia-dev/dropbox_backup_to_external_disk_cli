@@ -359,16 +359,20 @@ fn local_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
 }
 
 fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
-    let base_path = FileTxt::open_for_read(global_config().path_list_ext_disk_base_path)?.read_to_string()?;
-    let file_list_destination_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
-    let file_list_destination_folders = FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
-    let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
-
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_local(ui_tx, base_path, file_list_destination_files, file_list_destination_folders, file_list_destination_readonly_files) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let base_path = FileTxt::open_for_read(global_config().path_list_ext_disk_base_path)?.read_to_string()?;
+        let file_list_destination_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
+        let file_list_destination_folders = FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
+        let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+        // only the closure is actually spawned, because it is the return value of the block
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::list_local(ui_tx, base_path, file_list_destination_files, file_list_destination_folders, file_list_destination_readonly_files) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
     Ok(())
@@ -413,13 +417,18 @@ fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
 }
 
 fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
-    let file_list_source_files = FileTxt::open_for_read_and_write(global_config().path_list_source_files)?;
-    let file_list_source_folders = FileTxt::open_for_read_and_write(global_config().path_list_source_folders)?;
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::list_remote(ui_tx, file_list_source_files, file_list_source_folders) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let file_list_source_files = FileTxt::open_for_read_and_write(global_config().path_list_source_files)?;
+        let file_list_source_folders = FileTxt::open_for_read_and_write(global_config().path_list_source_folders)?;
+        // only the closure is actually spawned, because it is the return value of the block
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::list_remote(ui_tx, file_list_source_files, file_list_source_folders) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
     Ok(())
@@ -428,22 +437,23 @@ fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result
 /// The backup files must not be readonly to allow copying the modified file from the remote.
 fn read_only_remove() -> Result<(), LibError> {
     println!("{YELLOW}Remove readonly attribute from files.{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
-    let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
+
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::read_only_remove(
-            ui_tx_move_to_closure,
-            &ext_disk_base_path,
-            &mut file_destination_readonly_files,
-            &mut file_powershell_script_change_readonly,
-        ) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+        let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::read_only_remove(ui_tx, &ext_disk_base_path, &mut file_destination_readonly_files, &mut file_powershell_script_change_readonly) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
 
@@ -461,12 +471,17 @@ fn compare_files() -> Result<(), LibError> {
     println!("{YELLOW}Compare files.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::compare_files(ui_tx_move_to_closure, global_config()) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::compare_files(ui_tx, global_config()) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
 
@@ -484,22 +499,28 @@ fn compare_folders() -> Result<(), LibError> {
     println!("{YELLOW}Compare folders.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    let string_list_source_folder = FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
-    let string_list_destination_folders = FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
-    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
-    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
-    std::thread::spawn(move || {
-        // catch propagated errors and communicate errors to user or developer
-        match lib::compare_folders(
-            ui_tx_move_to_closure,
-            &string_list_source_folder,
-            &string_list_destination_folders,
-            &mut file_list_for_trash_folders,
-            &mut file_list_for_create_folders,
-        ) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let string_list_source_folder = FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
+        let string_list_destination_folders = FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
+        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        // only the closure is actually spawned, because it is the return value of the block
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::compare_folders(
+                ui_tx,
+                &string_list_source_folder,
+                &string_list_destination_folders,
+                &mut file_list_for_trash_folders,
+                &mut file_list_for_create_folders,
+            ) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
 
@@ -515,14 +536,23 @@ fn compare_folders() -> Result<(), LibError> {
 // create folders
 fn create_folders() -> Result<(), LibError> {
     println!("{YELLOW}Create folders from list.{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || match lib::create_folders(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_create_folders) {
-        Ok(()) => (),
-        Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        // only the closure is actually spawned, because it is the return value of the block
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::create_folders(ui_tx, &ext_disk_base_path, &mut file_list_for_create_folders) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
+        }
     });
 
     //receiver iterator
@@ -537,26 +567,31 @@ fn create_folders() -> Result<(), LibError> {
 // move or rename local files
 fn move_or_rename_local_files() -> Result<(), LibError> {
     println!("{YELLOW}Move or rename local files{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut path_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
-    let mut path_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
-
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(
-        move || match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash_files, &mut path_list_for_download) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
-        },
-    );
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut path_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+        let mut path_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx_move_to_closure = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash_files, &mut path_list_for_download) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
+        }
+    });
 
     //receiver iterator
     drop(ui_tx);
     let mut is_last_progress_bar = false;
     for received in ui_rx {
         if received == "." {
-            // this special character is like a progress bar
+            // this special character is used to create like a progress bar
             print!("{}", received);
             std::io::Write::flush(&mut std::io::stdout()).ok().expect("Could not flush stdout");
             is_last_progress_bar = true;
@@ -576,14 +611,22 @@ fn move_or_rename_local_files() -> Result<(), LibError> {
 // trash files from list
 fn trash_files() -> Result<(), LibError> {
     println!("{YELLOW}Trash files from list{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || match lib::trash_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_trash_files) {
-        Ok(()) => (),
-        Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::trash_files(ui_tx, &ext_disk_base_path, &mut file_list_for_trash_files) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
+        }
     });
 
     //receiver iterator
@@ -598,14 +641,22 @@ fn trash_files() -> Result<(), LibError> {
 // trash folders
 fn trash_folders() -> Result<(), LibError> {
     println!("{YELLOW}Trash folders{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || match lib::trash_folders(ui_tx_move_to_closure, &ext_disk_base_path, &mut file_list_for_trash_folders) {
-        Ok(()) => (),
-        Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::trash_folders(ui_tx, &ext_disk_base_path, &mut file_list_for_trash_folders) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
+        }
     });
 
     //receiver iterator
@@ -620,23 +671,29 @@ fn trash_folders() -> Result<(), LibError> {
 // download one file
 fn download_one_file(path_str: &str) -> Result<(), LibError> {
     println!("{YELLOW}Download one file{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let path_to_download = PathBuf::from(path_str);
-    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
-    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || {
-        match lib::download_one_file(
-            ui_tx_move_to_closure,
-            &ext_disk_base_path,
-            &path_to_download,
-            &mut file_list_just_downloaded,
-            &mut file_powershell_script_change_modified_datetime,
-        ) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let path_to_download = PathBuf::from(path_str);
+        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+        let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::download_one_file(
+                ui_tx,
+                &ext_disk_base_path,
+                &path_to_download,
+                &mut file_list_just_downloaded,
+                &mut file_powershell_script_change_modified_datetime,
+            ) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
 
@@ -652,23 +709,29 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
 // download from list
 fn download_from_list() -> Result<(), LibError> {
     println!("{YELLOW}Download from list{RESET}");
-    let ext_disk_base_path = get_ext_disk_base_path()?;
-    let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
-    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
-    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
-    let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(move || {
-        match lib::download_from_list(
-            ui_tx_move_to_closure,
-            &ext_disk_base_path,
-            &mut file_list_for_download,
-            &mut file_list_just_downloaded,
-            &mut file_powershell_script_change_modified_datetime,
-        ) {
-            Ok(()) => (),
-            Err(err) => println!("{RED}{err}{RESET}"),
+    std::thread::spawn({
+        // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
+        let ext_disk_base_path = get_ext_disk_base_path()?;
+        let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+        let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
+        // Shadow the clone with the same name before the closure.
+        let ui_tx = ui_tx.clone();
+        move || {
+            // catch propagated errors and communicate errors to user or developer
+            // spawned closure cannot propagate error with ?
+            match lib::download_from_list(
+                ui_tx,
+                &ext_disk_base_path,
+                &mut file_list_for_download,
+                &mut file_list_just_downloaded,
+                &mut file_powershell_script_change_modified_datetime,
+            ) {
+                Ok(()) => (),
+                Err(err) => println!("{RED}{err}{RESET}"),
+            }
         }
     });
 
