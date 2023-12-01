@@ -48,7 +48,7 @@ pub fn init_app_state() {
         path_list_destination_readonly_files: Path::new("temp_data/list_destination_readonly_files.csv"),
         path_list_for_download: Path::new("temp_data/list_for_download.csv"),
         path_list_for_trash_files: Path::new("temp_data/list_for_trash_files.csv"),
-        path_list_just_downloaded_or_moved: Path::new("temp_data/list_just_downloaded_or_moved.csv"),
+        path_list_just_downloaded: Path::new("temp_data/list_just_downloaded.csv"),
         path_list_for_trash_folders: Path::new("temp_data/list_for_trash_folders.csv"),
         path_list_for_create_folders: Path::new("temp_data/list_for_create_folders.csv"),
         path_powershell_script_change_readonly: Path::new("temp_data/powershell_script_change_readonly.ps"),

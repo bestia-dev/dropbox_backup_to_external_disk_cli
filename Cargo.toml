@@ -1,6 +1,6 @@
 [package]
 name = "dropbox_backup_to_external_disk_cli"
-version = "2023.1130.1822"
+version = "2023.1201.928"
 description = "One way sync from dropbox to external disc"
 authors = ["bestia.dev"]
 homepage = "https://bestia.dev"

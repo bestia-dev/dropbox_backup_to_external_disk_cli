@@ -331,8 +331,8 @@ pub fn empty_lists_compared() -> Result<(), LibError> {
     file_list_for_trash_folders.empty()?;
     let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
     file_list_for_trash_files.empty()?;
-    let mut file_list_just_downloaded_or_moved = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded_or_moved)?;
-    file_list_just_downloaded_or_moved.empty()?;
+    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+    file_list_just_downloaded.empty()?;
     let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
     file_powershell_script_change_readonly.empty()?;
     let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
@@ -622,16 +622,23 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
     println!("{YELLOW}Download one file{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let path_to_download = PathBuf::from(path_str);
+    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
     let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     let ui_tx_move_to_closure = ui_tx.clone();
-    std::thread::spawn(
-        move || match lib::download_one_file(ui_tx_move_to_closure, &ext_disk_base_path, &path_to_download, &mut file_powershell_script_change_modified_datetime) {
+    std::thread::spawn(move || {
+        match lib::download_one_file(
+            ui_tx_move_to_closure,
+            &ext_disk_base_path,
+            &path_to_download,
+            &mut file_list_just_downloaded,
+            &mut file_powershell_script_change_modified_datetime,
+        ) {
             Ok(()) => (),
             Err(err) => println!("{RED}{err}{RESET}"),
-        },
-    );
+        }
+    });
 
     //receiver iterator
     drop(ui_tx);
@@ -647,6 +654,7 @@ fn download_from_list() -> Result<(), LibError> {
     println!("{YELLOW}Download from list{RESET}");
     let ext_disk_base_path = get_ext_disk_base_path()?;
     let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
     let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -656,6 +664,7 @@ fn download_from_list() -> Result<(), LibError> {
             ui_tx_move_to_closure,
             &ext_disk_base_path,
             &mut file_list_for_download,
+            &mut file_list_just_downloaded,
             &mut file_powershell_script_change_modified_datetime,
         ) {
             Ok(()) => (),
