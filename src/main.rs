@@ -193,11 +193,13 @@ fn print_help() -> Result<(), LibError> {
   - Go to tab Permissions, check `files.metadata.read` and `files.content.read`, click Submit, close browser
 
   {YELLOW}2. Before every use, create a short-lived access token (secret):{RESET}
+  - In you Linux terminal session run:
+{GREEN}eval $(dropbox_backup_to_external_disk_cli encode_token){RESET}
+  - Let it wait for your input
   - Open browser on {GREEN}<https://www.dropbox.com/developers/apps?_tk=pilot_lp&_ad=topbar4&_camp=myapps>{RESET}
   - Choose your existing private Dropbox app like {GREEN}`backup_{date}`{RESET}
   - Click button `Generate` to generated short-lived access token and copy it, close browser
-  - In you Linux terminal session run:
-{GREEN}eval $(dropbox_backup_to_external_disk_cli encode_token){RESET}
+  - Return to the terminal, that is waiting for your input
   - Paste the copied short-lived token with shift+ctr+v and press Enter.  
   - The token is saved in env var and will be used in subsequent commands.
   - This temporary token will be deleted when the session ends.
