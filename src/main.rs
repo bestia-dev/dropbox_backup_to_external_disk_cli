@@ -1,10 +1,11 @@
 // dropbox_backup_to_external_disk_cli/src/bin.rs
-
 // CLI binary project around the library.
 // All work with input/output should be inside the bin project, and nothing in the lib project.
 // Inside bin I should print on the screen and open or create Files. Then pass the Files to the lib part to operate on them.
 // But to be interactive I cannot wait for a lib function to finish. The lib functions should be in another thread.
 // Then send msg to the bin main thread that print that to the screen.
+
+#![doc=include_str!("../README.md")]
 
 mod app_state_mod;
 mod crossterm_cli_mod;
