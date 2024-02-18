@@ -9,9 +9,10 @@ use cargo_auto_lib::GREEN;
 use cargo_auto_lib::RED;
 use cargo_auto_lib::RESET;
 use cargo_auto_lib::YELLOW;
-// region: library with basic automation tasks
 
 use cargo_auto_github_lib as cgl;
+
+// region: library with basic automation tasks
 
 fn main() {
     cl::exit_if_not_run_in_rust_project_root_directory();
@@ -230,7 +231,7 @@ fn task_doc() {
         r#"
     {YELLOW}After `cargo auto doc`, check `docs/index.html`. If ok, then test the documentation code examples{RESET}
 {GREEN}cargo auto test{RESET}
-    {YELLOW}{RESET}"#
+"#
     );
 }
 
