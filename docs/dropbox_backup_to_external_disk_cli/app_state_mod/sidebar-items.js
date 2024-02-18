@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["init_app_state"],"struct":["AppState"]};
