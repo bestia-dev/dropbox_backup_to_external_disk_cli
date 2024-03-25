@@ -124,8 +124,8 @@ fn task_build() {
     {YELLOW}After `cargo auto build`, run the compiled binary, examples and/or tests{RESET}
     
     {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
-    The bash script to create the standard podman pod "rust_dev_pod" from the directory "docker_rust_development_install/pod_with_rust_vscode" does not provide this access.  
-    Use the slightly modified script from the directory "docker_rust_development_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
+    The bash script to create the standard podman pod "crustde_pod" from the directory "crustde_install/pod_with_rust_vscode" does not provide this access.  
+    Use the slightly modified script from the directory "crustde_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
     Test this bash for correct access:
 {GREEN}ls -la /mnt/e/DropBoxBackup2{RESET}
     {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
@@ -161,8 +161,8 @@ fn task_release() {
     {YELLOW}After `cargo auto release`, run the compiled binary, examples and/or tests{RESET}
 
     {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
-    The bash script to create the standard podman pod "rust_dev_pod" from the directory "docker_rust_development_install/pod_with_rust_vscode" does not provide this access.  
-    Use the slightly modified script from the directory "docker_rust_development_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
+    The bash script to create the standard podman pod "crustde_pod" from the directory "crustde_install/pod_with_rust_vscode" does not provide this access.  
+    Use the slightly modified script from the directory "crustde_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
     Test this bash for correct access:
 {GREEN}ls -la /mnt/e/DropBoxBackup2{RESET}
     {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
@@ -206,7 +206,7 @@ fn task_doc() {
     // tidy HTML is a HTML checker and formatter installed on most Linuxes.
     // If it is not installed run: `sudo apt install -y tidy`
     // From the bash you can install it inside the podman container like this:
-    // `podman exec --user root rust_dev_vscode_cnt apt install -y tidy`
+    // `podman exec --user root crustde_vscode_cnt apt install -y tidy`
     //
     // First we check if tidy is installed on the system
     // Run a dummy command and write the std/err output to tidy_warnings.txt.
