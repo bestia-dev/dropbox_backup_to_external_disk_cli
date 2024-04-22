@@ -22,7 +22,7 @@
 [//]: # (auto_lines_of_code end)
 
  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/blob/main/LICENSE)
- [![Rust](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/workflows/RustAction/badge.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/)
+ [![Rust](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/workflows/rust_fmt_auto_build_test/badge.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/)
  ![dropbox_backup_to_external_disk_cli](https://bestia.dev/webpage_hit_counter/get_svg_image/772745756.svg)
 
 Hashtags: #rustlang #tutorial #dropbox #cli #tui  
