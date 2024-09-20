@@ -1,6 +1,6 @@
 [package]
 name = "dropbox_backup_to_external_disk_cli"
-version = "2023.1222.2326"
+version = "2024.920.1619"
 description = "One way sync from dropbox to external disc"
 authors = ["bestia.dev"]
 homepage = "https://bestia.dev"
@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/"
 categories = ["programming"]
-keywords = ["dropbox"]
+keywords = ["dropbox", "maintained", "work_in_progress"]
 publish = false
 
 [dependencies]
@@ -41,5 +41,5 @@ once_cell = "1.18.0"
 
 [dependencies.dropbox-sdk]
 version = "0.16.0"
-default_features = false
+default-features = false
 features = ["dbx_files", "default_client"]

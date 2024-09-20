@@ -111,8 +111,8 @@ fn argument_router() -> Result<(), LibError> {
 /// `complete -p`  - shows all the completion commands
 /// `complete -r xxx` - deletes a completion command
 fn completion() -> Result<(), LibError> {
-    /// println one, more or all sub_commands
-    fncl::completion_return_one_or_more_sub_commands(sub_commands: Vec<&str>, word_being_completed: &str) {
+    // println one, more or all sub_commands
+    fn completion_return_one_or_more_sub_commands(sub_commands: Vec<&str>, word_being_completed: &str) {
         let mut sub_found = false;
         for sub_command in sub_commands.iter() {
             if sub_command.starts_with(word_being_completed) {
@@ -161,12 +161,12 @@ fn completion() -> Result<(), LibError> {
             "trash_folders",
             "trash_files",
         ];
-       cl::completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
+        completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
     // the second level if needed
     else if last_word == "list_and_sync" || last_word == "local_list" || last_word == "all_list" {
         let sub_commands = vec!["/mnt/e/DropboxBackup2"];
-       cl::completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
+        completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
     Ok(())
 }
