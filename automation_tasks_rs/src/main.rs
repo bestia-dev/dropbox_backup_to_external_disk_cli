@@ -101,7 +101,7 @@ fn panic_set_hook(panic_info: &std::panic::PanicInfo) {
 
 /// match arguments and call tasks functions
 fn match_arguments_and_call_tasks(mut args: std::env::Args) {
-    // the first argument is the user defined task: (no argument for help), build, release,...
+    // the first argument is the user defined task: (no argument for help), build, release_win,...
     let arg_1 = args.next();
     match arg_1 {
         None => print_help(),
@@ -112,8 +112,8 @@ fn match_arguments_and_call_tasks(mut args: std::env::Args) {
                 println!("{YELLOW}Running automation task: {task}{RESET}");
                 if &task == "build" {
                     task_build();
-                } else if &task == "release" {
-                    task_release();
+                } else if &task == "release_win" {
+                    task_release_win();
                 } else if &task == "doc" {
                     task_doc();
                 } else if &task == "test" {
@@ -141,7 +141,7 @@ fn print_help() {
 
     {YELLOW}User defined tasks in automation_tasks_rs:{RESET}
 {GREEN}cargo auto build{RESET} - {YELLOW}builds the crate in debug mode, fmt, increment version{RESET}
-{GREEN}cargo auto release{RESET} - {YELLOW}builds the crate in release mode, fmt, increment version{RESET}
+{GREEN}cargo auto release_win{RESET} - {YELLOW}builds the crate in release mode (cross compile to win), fmt, increment version{RESET}
 {GREEN}cargo auto doc{RESET} - {YELLOW}builds the docs, copy to docs directory{RESET}
 {GREEN}cargo auto test{RESET} - {YELLOW}runs all the tests{RESET}
 {GREEN}cargo auto commit_and_push "message"{RESET} - {YELLOW}commits with message and push with mandatory message{RESET}
@@ -183,7 +183,7 @@ fn completion() {
     let last_word = args[3].as_str();
 
     if last_word == "cargo-auto" || last_word == "auto" {
-        let sub_commands = vec!["build", "release", "doc", "test", "commit_and_push", "github_new_release"];
+        let sub_commands = vec!["build", "release_win", "doc", "test", "commit_and_push", "github_new_release"];
         cl::completion_return_one_or_more_sub_commands(sub_commands, word_being_completed);
     }
     /*
@@ -225,33 +225,34 @@ fn task_build() {
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
     {YELLOW}if ok then{RESET}
-{GREEN}cargo auto release{RESET}
+{GREEN}cargo auto release_win{RESET}
 "#,
         package_name = cargo_toml.package_name(),
     );
     print_examples_cmd();
 }
 
-/// cargo build --release
-fn task_release() {
+/// cargo build --release --target x86_64-pc-windows-gnu
+/// TODO: try cross compile to windows, because Linux has problems with file datetimes on external disk
+fn task_release_win() {
     let cargo_toml = cl::CargoToml::read();
     cl::auto_version_increment_semver_or_date();
     cl::auto_cargo_toml_to_md();
     cl::auto_lines_of_code("");
 
     cl::run_shell_command_static("cargo fmt").unwrap_or_else(|e| panic!("{e}"));
-    cl::run_shell_command_static("cargo build --release").unwrap_or_else(|e| panic!("{e}"));
+    cl::run_shell_command_static("cargo build --release --target x86_64-pc-windows-gnu").unwrap_or_else(|e| panic!("{e}"));
 
-    cl::ShellCommandLimitedDoubleQuotesSanitizer::new(r#"strip "target/release/{package_name}" "#)
-        .unwrap_or_else(|e| panic!("{e}"))
-        .arg("{package_name}", &cargo_toml.package_name())
-        .unwrap_or_else(|e| panic!("{e}"))
-        .run()
-        .unwrap_or_else(|e| panic!("{e}"));
+    // cl::ShellCommandLimitedDoubleQuotesSanitizer::new(r#"strip "target/release/{package_name}" "#)
+    //     .unwrap_or_else(|e| panic!("{e}"))
+    //     .arg("{package_name}", &cargo_toml.package_name())
+    //     .unwrap_or_else(|e| panic!("{e}"))
+    //     .run()
+    //     .unwrap_or_else(|e| panic!("{e}"));
 
     println!(
         r#"
-    {YELLOW}After `cargo auto release`, run the compiled binary, examples and/or tests{RESET}
+    {YELLOW}After `cargo auto release_win`, run the compiled binary, examples and/or tests{RESET}
 
     {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
     The bash script to create the standard podman pod "crustde_pod" from the directory "crustde_install/pod_with_rust_vscode" does not provide this access.  
