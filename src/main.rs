@@ -336,10 +336,6 @@ pub fn empty_lists_compared() -> Result<(), LibError> {
     file_list_for_trash_files.empty()?;
     let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
     file_list_just_downloaded.empty()?;
-    let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
-    file_powershell_script_change_readonly.empty()?;
-    let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
-    file_powershell_script_change_modified_datetime.empty()?;
     Ok(())
 }
 
@@ -447,13 +443,13 @@ fn read_only_remove() -> Result<(), LibError> {
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
         let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
-        let mut file_powershell_script_change_readonly = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_readonly)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::read_only_remove(ui_tx, &ext_disk_base_path, &mut file_destination_readonly_files, &mut file_powershell_script_change_readonly) {
+            // TODO: readonly naturally from windows
+            match lib::read_only_remove(ui_tx, &ext_disk_base_path, &mut file_destination_readonly_files) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }
@@ -681,19 +677,12 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
         let ext_disk_base_path = get_ext_disk_base_path()?;
         let path_to_download = PathBuf::from(path_str);
         let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
-        let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::download_one_file(
-                ui_tx,
-                &ext_disk_base_path,
-                &path_to_download,
-                &mut file_list_just_downloaded,
-                &mut file_powershell_script_change_modified_datetime,
-            ) {
+            match lib::download_one_file(ui_tx, &ext_disk_base_path, &path_to_download, &mut file_list_just_downloaded) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }
@@ -719,19 +708,12 @@ fn download_from_list() -> Result<(), LibError> {
         let ext_disk_base_path = get_ext_disk_base_path()?;
         let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
         let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
-        let mut file_powershell_script_change_modified_datetime = FileTxt::open_for_read_and_write(global_config().path_powershell_script_change_modified_datetime)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::download_from_list(
-                ui_tx,
-                &ext_disk_base_path,
-                &mut file_list_for_download,
-                &mut file_list_just_downloaded,
-                &mut file_powershell_script_change_modified_datetime,
-            ) {
+            match lib::download_from_list(ui_tx, &ext_disk_base_path, &mut file_list_for_download, &mut file_list_just_downloaded) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }
