@@ -5,17 +5,18 @@
 [//]: # (auto_cargo_toml_to_md start)
 
 **One way sync from dropbox to external disc**  
-***version: 2023.1222.2326 date: 2024-02-18 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***  
+***version: 2024.927.907 date: 2024-09-27 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
+
+ ![dropbox](https://img.shields.io/badge/dropbox-orange)
+ ![maintained](https://img.shields.io/badge/maintained-green)
+ ![work_in_progress](https://img.shields.io/badge/work_in_progress-orange)
 
 [//]: # (auto_cargo_toml_to_md end)
 
- ![maintained](https://img.shields.io/badge/maintained-green) 
- ![work_in_progress](https://img.shields.io/badge/work_in_progress-yellow) 
-
 [//]: # (auto_lines_of_code start)
-[![Lines in Rust code](https://img.shields.io/badge/Lines_in_Rust-670-green.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
-[![Lines in Doc comments](https://img.shields.io/badge/Lines_in_Doc_comments-36-blue.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
-[![Lines in Comments](https://img.shields.io/badge/Lines_in_comments-115-purple.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Rust code](https://img.shields.io/badge/Lines_in_Rust-649-green.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Doc comments](https://img.shields.io/badge/Lines_in_Doc_comments-35-blue.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Comments](https://img.shields.io/badge/Lines_in_comments-117-purple.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 [![Lines in examples](https://img.shields.io/badge/Lines_in_examples-0-yellow.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 [![Lines in tests](https://img.shields.io/badge/Lines_in_tests-0-orange.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 
@@ -25,7 +26,7 @@
  [![Rust](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/workflows/rust_fmt_auto_build_test/badge.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_2/)
  ![dropbox_backup_to_external_disk_cli](https://bestia.dev/webpage_hit_counter/get_svg_image/772745756.svg)
 
-Hashtags: #rustlang #tutorial #dropbox #cli #tui  
+Hashtags: #rustlang #tutorial #dropbox #maintained #work_in_progress #cli
 My projects on Github are more like a tutorial than a finished product: [bestia-dev tutorials](https://github.com/bestia-dev/tutorials_rust_wasm).
 
 ## CLI
@@ -34,9 +35,30 @@ This compiles into a CLI binary executable. All the user interface is inside thi
 The main dependency is to the library project `dropbox_backup_to_external_disk_lib` that contains all the program logic.  I separated this projects to show how to use the same library from different binary projects. It is difficult to separate this two layers afterwards. They should be separated from the start.  
 Different user-interfaces need different workflows and the common library must allow this. Modern computers and phones are all multi-core. Even javascript has multi-thread capabilities with web-workers. It is recommended to create multi-threaded applications. Most of the calls to the library will be done in a separate thread to have the possibility of communication between the 2 layers (UI and logic). For example for progress bars and similar long running tasks.  
 
+## Cross compile to windows
+
+On my machine I have Windows11 with WSL/Debian. My external drive is exFAT and it works nice with windows. But from WSL it does not work well. WSL/Debian cannot change the datetime of files on the external drive. 
+
+Therefore I will cross compile to Windows, copy the exe file with `scp` and run it on Windows.
+
+From Windows it takes cold 16 seconds and hot 2 seconds to list the Local external drive folder. In WSL it takes forever. 
+
+Copy the exe file from the container 'crustde' to win folder. Run in windows git-bash:
+
+```bash
+scp rustdevuser@crustde:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/x86_64-pc-windows-gnu/release/dropbox_backup_to_external_disk_cli.exe /c/Users/Luciano/rustprojects/dropbox_backup_to_external_disk/
+
+# then run the local_list with the path like this in git-bash
+cd rustprojects/dropbox_backup_to_external_disk
+alias dropbox_backup_to_external_disk_cli=./dropbox_backup_to_external_disk_cli
+complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli
+
+
+```
+
 ## Development
 
-I use cargo-auto to write all repetitive tasks in automation_tasks_rs.  
+I use `cargo-auto` to write all repetitive tasks in `automation_tasks_rs`.  
 
 ## Try it
 
@@ -96,6 +118,8 @@ For commercial programs they probably embed them into the binary code somehow. B
 `$ dropbox_backup_to_external_disk_cli --help`  
 has the detailed instructions.  
 Then every time before use we need generate the "short-lived access token" for security reasons. There is the possibility to choose "no expiration" token, but I don't like it. Dropbox backup is used rarely and it is not super frustrating to make few clicks for security of your precious files. Having a "no expiration" token is like having another password for the hackers to try to hack. I like more the "short-lived" token. When I'm not using this backup program, there is no access token at all.  
+TODO: use the complete OAuth protocol instead of short-lived token
+
 ![dropbox_2](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_2.png "dropbox_2") ![dropbox_1](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_1.png "dropbox_1")
 Use this command to store the token (encrypted) in env variable. It will ask for your interactive input like a secret password.
 
