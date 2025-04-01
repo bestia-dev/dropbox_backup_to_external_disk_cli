@@ -40,17 +40,17 @@ impl lib::AppStateMethods for AppState {
 pub fn init_app_state() {
     // define paths in bin, not in lib
     let app_config = lib::AppConfig {
-        path_list_ext_disk_base_path: Path::new("temp_data/list_base_local_path.csv"),
-        path_list_source_files: Path::new("temp_data/list_source_files.csv"),
-        path_list_destination_files: Path::new("temp_data/list_destination_files.csv"),
-        path_list_source_folders: Path::new("temp_data/list_source_folders.csv"),
-        path_list_destination_folders: Path::new("temp_data/list_destination_folders.csv"),
-        path_list_destination_readonly_files: Path::new("temp_data/list_destination_readonly_files.csv"),
-        path_list_for_download: Path::new("temp_data/list_for_download.csv"),
-        path_list_for_trash_files: Path::new("temp_data/list_for_trash_files.csv"),
-        path_list_just_downloaded: Path::new("temp_data/list_just_downloaded.csv"),
-        path_list_for_trash_folders: Path::new("temp_data/list_for_trash_folders.csv"),
-        path_list_for_create_folders: Path::new("temp_data/list_for_create_folders.csv"),
+        path_list_ext_disk_base_path: Path::new("tmp/temp_data/list_base_local_path.csv"),
+        path_list_source_files: Path::new("tmp/temp_data/list_source_files.csv"),
+        path_list_destination_files: Path::new("tmp/temp_data/list_destination_files.csv"),
+        path_list_source_folders: Path::new("tmp/temp_data/list_source_folders.csv"),
+        path_list_destination_folders: Path::new("tmp/temp_data/list_destination_folders.csv"),
+        path_list_destination_readonly_files: Path::new("tmp/temp_data/list_destination_readonly_files.csv"),
+        path_list_for_download: Path::new("tmp/temp_data/list_for_download.csv"),
+        path_list_for_trash_files: Path::new("tmp/temp_data/list_for_trash_files.csv"),
+        path_list_just_downloaded: Path::new("tmp/temp_data/list_just_downloaded.csv"),
+        path_list_for_trash_folders: Path::new("tmp/temp_data/list_for_trash_folders.csv"),
+        path_list_for_create_folders: Path::new("tmp/temp_data/list_for_create_folders.csv"),
     };
     let string_proba_mutex = std::sync::Mutex::new(String::from("proba"));
     let _ = lib::APP_STATE.set(Box::new(AppState { app_config, string_proba_mutex }));

@@ -37,8 +37,8 @@ fn main_with_catch_errors() -> Result<(), LibError> {
     // init the global struct APP_STATE defined in the lib project
     app_state_mod::init_app_state();
 
-    //create the directory temp_data/
-    std::fs::create_dir_all("temp_data")?;
+    //create the directory tmp/temp_data/
+    std::fs::create_dir_all("tmp/temp_data")?;
 
     /*   let ext_disk_base_path = if std::path::Path::new(APP_CONFIG.path_list_ext_disk_base_path).exists() {
         std::fs::read_to_string(APP_CONFIG.path_list_ext_disk_base_path)?

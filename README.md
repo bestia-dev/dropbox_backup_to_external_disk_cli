@@ -65,7 +65,7 @@ I use `cargo-auto` to write all repetitive tasks in `automation_tasks_rs`.
 
 There are a few manual steps for the security of you files on Dropbox. Authentication on internet is a complex topic.  
 You should be logged in Linux terminal (also in WSL2) with your account. So things you do in that session, are not visible to others. You will set some local environment variables that are private/secret to your linux Session.  After you logout from you Linux session these local environment variables will be deleted.  
-The executable will create a sub-directory `temp_data` in the current directory. Maybe it is best if you create a dedicated directory `~/dropbox_backup_to_external_disk_cli/` just for this executable and temp_data.
+The executable will create a sub-directory `tmp/temp_data` in the current directory. Maybe it is best if you create a dedicated directory `~/dropbox_backup_to_external_disk_cli/` just for this executable and tmp/temp_data.
 Download the latest release from [Github](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/releases) and make the file executable and enable auto-completion:
 
 ```bash
