@@ -53,5 +53,8 @@ pub fn init_app_state() {
         path_list_for_create_folders: Path::new("tmp/temp_data/list_for_create_folders.csv"),
     };
     let string_proba_mutex = std::sync::Mutex::new(String::from("proba"));
-    let _ = lib::APP_STATE.set(Box::new(AppState { app_config, string_proba_mutex }));
+    let _ = lib::APP_STATE.set(Box::new(AppState {
+        app_config,
+        string_proba_mutex,
+    }));
 }

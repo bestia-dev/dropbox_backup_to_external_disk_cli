@@ -80,14 +80,18 @@ fn argument_router() -> Result<(), LibError> {
             // the command local_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
                 Some(ext_disk_base_path) => local_list(Path::new(ext_disk_base_path)),
-                None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
+                None => Err(LibError::ErrorFromString(format!(
+                    "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
+                ))),
             }
         }
         Some("all_list") => {
             // the command all_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
                 Some(ext_disk_base_path) => all_list(Path::new(ext_disk_base_path)),
-                None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
+                None => Err(LibError::ErrorFromString(format!(
+                    "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
+                ))),
             }
         }
         Some("read_only_remove") => read_only_remove(),
@@ -99,10 +103,14 @@ fn argument_router() -> Result<(), LibError> {
         Some("trash_folders") => trash_folders(),
         Some("one_file_download") => match std::env::args().nth(2).as_deref() {
             Some(path_str) => download_one_file(path_str),
-            None => Err(LibError::ErrorFromString(format!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"))),
+            None => Err(LibError::ErrorFromString(format!(
+                "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
+            ))),
         },
         Some("download_from_list") => download_from_list(),
-        _ => Err(LibError::ErrorFromStr("Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`")),
+        _ => Err(LibError::ErrorFromStr(
+            "Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`",
+        )),
     }
 }
 
@@ -301,7 +309,10 @@ fn ui_test_connection() -> Result<(), LibError> {
 /// saves the base local path for later use like "/mnt/e/DropBoxBackup2"
 fn check_and_save_ext_disk_base_path(ext_disk_base_path: &Path) -> Result<(), LibError> {
     if !ext_disk_base_path.exists() {
-        println!("{RED}error: ext_disk_base_path not exists {}{RESET}", ext_disk_base_path.to_string_lossy());
+        println!(
+            "{RED}error: ext_disk_base_path not exists {}{RESET}",
+            ext_disk_base_path.to_string_lossy()
+        );
         std::process::exit(1);
     }
     let store_path = global_config().path_list_ext_disk_base_path;
@@ -368,7 +379,13 @@ fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::list_local(ui_tx, base_path, file_list_destination_files, file_list_destination_folders, file_list_destination_readonly_files) {
+            match lib::list_local(
+                ui_tx,
+                base_path,
+                file_list_destination_files,
+                file_list_destination_folders,
+                file_list_destination_readonly_files,
+            ) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }
@@ -578,7 +595,12 @@ fn move_or_rename_local_files() -> Result<(), LibError> {
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::move_or_rename_local_files(ui_tx_move_to_closure, &ext_disk_base_path, &mut path_list_for_trash_files, &mut path_list_for_download) {
+            match lib::move_or_rename_local_files(
+                ui_tx_move_to_closure,
+                &ext_disk_base_path,
+                &mut path_list_for_trash_files,
+                &mut path_list_for_download,
+            ) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }
@@ -713,7 +735,12 @@ fn download_from_list() -> Result<(), LibError> {
         move || {
             // catch propagated errors and communicate errors to user or developer
             // spawned closure cannot propagate error with ?
-            match lib::download_from_list(ui_tx, &ext_disk_base_path, &mut file_list_for_download, &mut file_list_just_downloaded) {
+            match lib::download_from_list(
+                ui_tx,
+                &ext_disk_base_path,
+                &mut file_list_for_download,
+                &mut file_list_just_downloaded,
+            ) {
                 Ok(()) => (),
                 Err(err) => println!("{RED}{err}{RESET}"),
             }

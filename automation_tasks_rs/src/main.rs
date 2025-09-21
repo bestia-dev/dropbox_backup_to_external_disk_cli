@@ -252,21 +252,12 @@ fn task_release_win() {
 
     println!(
         r#"
-    {YELLOW}After `cargo auto release_win`, run the compiled binary, examples and/or tests{RESET}
-
-    {YELLOW}For testing this project, it must have access to the external disk backup directory and dropbox.com from inside the container.  
-    The bash script to create the standard podman pod "crustde_pod" from the directory "crustde_install/pod_with_rust_vscode" does not provide this access.  
-    Use the slightly modified script from the directory "crustde_install/pod_with_rust_vscode_for_dropbox" to create the pod for the "dropbox_backup_to_external_disk" project.  
-    Test this bash for correct access:
-{GREEN}ls -la /mnt/e/DropBoxBackup2{RESET}
-    {YELLOW}This should return the content of the folder if we have the right to access.{RESET}
-{GREEN}curl https://api.dropbox.com/oauth2/token -d code=X{RESET}
-    {YELLOW}This should return an error: The request parameters do not match any of the supported authorization flows.{RESET}
-    {YELLOW}Because we didn't give any actual token. But this is enough to know that we can access the web server.{RESET}
-    
-    {YELLOW}Create auto-completion (only once):{RESET}
-{GREEN}alias dropbox_backup_to_external_disk_cli=./target/release/{package_name}{RESET}
-{GREEN}complete -C "{package_name} completion" {package_name}{RESET}
+    {YELLOW}After `cargo auto release_win`, copy the exe file into windows and run the compiled binary{RESET}
+    {YELLOW}Run in Windows git-bash:{RESET}
+{GREEN}cd /c/Users/Luciano/git-bash/rustprojects/dropbox_backup_to_external_disk_cli{RESET}
+{GREEN}scp rustdevuser@crustde:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/x86_64-pc-windows-gnu/release/dropbox_backup_to_external_disk_cli.exe /c/Users/Luciano/git-bash/rustprojects/dropbox_backup_to_external_disk_cli/{RESET}
+{GREEN}alias dropbox_backup_to_external_disk_cli=./dropbox_backup_to_external_disk_cli{RESET}
+{GREEN}complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli{RESET}
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
     {YELLOW}if ok then{RESET}
