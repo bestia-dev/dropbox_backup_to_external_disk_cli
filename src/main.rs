@@ -10,13 +10,12 @@
 mod app_state_mod;
 mod crossterm_cli_mod;
 
-use std::path::{Path, PathBuf};
-
+use crossplatform_path::CrossPathBuf;
 use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-use dropbox_backup_to_external_disk_lib::{global_config, LibError};
+use dropbox_backup_to_external_disk_lib::{global_config, DropboxBackupToExternalDiskError};
 use lib::FileTxt;
 
 fn main() {
@@ -33,14 +32,14 @@ fn main() {
     }
 }
 
-fn main_with_catch_errors() -> Result<(), LibError> {
+fn main_with_catch_errors() -> Result<(), DropboxBackupToExternalDiskError> {
     // init the global struct APP_STATE defined in the lib project
     app_state_mod::init_app_state();
 
     //create the directory tmp/temp_data/
     std::fs::create_dir_all("tmp/temp_data")?;
 
-    /*   let ext_disk_base_path = if std::path::Path::new(APP_CONFIG.path_list_ext_disk_base_path).exists() {
+    /*   let ext_disk_base_path = if CrossPathBuf::new(APP_CONFIG.path_list_ext_disk_base_path)?.exists() {
         std::fs::read_to_string(APP_CONFIG.path_list_ext_disk_base_path)?
     } else {
         String::new()
@@ -51,8 +50,9 @@ fn main_with_catch_errors() -> Result<(), LibError> {
     argument_router()?;
     Ok(())
 }
-/// look at the arguments and route to appropriate function
-fn argument_router() -> Result<(), LibError> {
+
+/// Look at the arguments and route to appropriate function.
+fn argument_router() -> Result<(), DropboxBackupToExternalDiskError> {
     match std::env::args().nth(1).as_deref() {
         None | Some("--help") | Some("-h") => print_help(),
         Some("completion") => completion(),
@@ -79,8 +79,8 @@ fn argument_router() -> Result<(), LibError> {
         Some("local_list") => {
             // the command local_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
-                Some(ext_disk_base_path) => local_list(Path::new(ext_disk_base_path)),
-                None => Err(LibError::ErrorFromString(format!(
+                Some(ext_disk_base_path) => local_list(&CrossPathBuf::new(ext_disk_base_path)?),
+                None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
                     "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
                 ))),
             }
@@ -88,8 +88,8 @@ fn argument_router() -> Result<(), LibError> {
         Some("all_list") => {
             // the command all_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
-                Some(ext_disk_base_path) => all_list(Path::new(ext_disk_base_path)),
-                None => Err(LibError::ErrorFromString(format!(
+                Some(ext_disk_base_path) => all_list(&CrossPathBuf::new(ext_disk_base_path)?),
+                None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
                     "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
                 ))),
             }
@@ -103,22 +103,23 @@ fn argument_router() -> Result<(), LibError> {
         Some("trash_folders") => trash_folders(),
         Some("one_file_download") => match std::env::args().nth(2).as_deref() {
             Some(path_str) => download_one_file(path_str),
-            None => Err(LibError::ErrorFromString(format!(
+            None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
                 "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
             ))),
         },
         Some("download_from_list") => download_from_list(),
-        _ => Err(LibError::ErrorFromStr(
+        _ => Err(DropboxBackupToExternalDiskError::ErrorFromStr(
             "Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`",
         )),
     }
 }
 
-/// sub-command for bash auto-completion of `cargo auto` using the crate `dev_bestia_cargo_completion`
+/// Sub-command for bash auto-completion of `cargo auto` using the crate `dev_bestia_cargo_completion`.
+///
 /// `complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli`
 /// `complete -p`  - shows all the completion commands
 /// `complete -r xxx` - deletes a completion command
-fn completion() -> Result<(), LibError> {
+fn completion() -> Result<(), DropboxBackupToExternalDiskError> {
     // println one, more or all sub_commands
     fn completion_return_one_or_more_sub_commands(sub_commands: Vec<&str>, word_being_completed: &str) {
         let mut sub_found = false;
@@ -179,17 +180,17 @@ fn completion() -> Result<(), LibError> {
     Ok(())
 }
 
-/// print help
-fn print_help() -> Result<(), LibError> {
+/// Print help.
+fn print_help() -> Result<(), DropboxBackupToExternalDiskError> {
     let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
     // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
-    let path_list_source_files = global_config().path_list_source_files.to_string_lossy();
-    let path_list_destination_files = global_config().path_list_destination_files.to_string_lossy();
-    let path_list_for_download = global_config().path_list_for_download.to_string_lossy();
-    let path_list_for_trash_files = global_config().path_list_for_trash_files.to_string_lossy();
-    let path_list_for_readonly = global_config().path_list_destination_readonly_files.to_string_lossy();
-    let path_list_for_trash_folders = global_config().path_list_destination_folders.to_string_lossy();
-    let path_list_for_create_folders = global_config().path_list_for_create_folders.to_string_lossy();
+    let path_list_source_files = &global_config().path_list_source_files;
+    let path_list_destination_files = &global_config().path_list_destination_files;
+    let path_list_for_download = &global_config().path_list_for_download;
+    let path_list_for_trash_files = &global_config().path_list_for_trash_files;
+    let path_list_for_readonly = &global_config().path_list_destination_readonly_files;
+    let path_list_for_trash_folders = &global_config().path_list_destination_folders;
+    let path_list_for_create_folders = &global_config().path_list_for_create_folders;
 
     println!(
         r#"
@@ -270,12 +271,13 @@ fn print_help() -> Result<(), LibError> {
     Ok(())
 }
 
-/// Ask the user to paste the token interactively and press Enter. Then calculate the master_key and the token_enc.
-/// I need to store the token somewhere because the CLI can be executed many times sequentially.
-/// The result of the function must be correct bash commands. They must be executed in the current shell and not in a sub-shell.
-/// This command should be executed with `eval $(dropbox_backup_to_external_disk_cli encode_token)` to store the env var in the current shell.
-/// Similar to how works `eval $(ssh-agent)`
-fn ui_encode_token() -> Result<(), LibError> {
+/// Ask the user to paste the token interactively and press Enter. Then calculate the master_key and the token_enc.  \
+///
+/// I need to store the token somewhere because the CLI can be executed many times sequentially.  \
+/// The result of the function must be correct bash commands. They must be executed in the current shell and not in a sub-shell.  \
+/// This command should be executed with `eval $(dropbox_backup_to_external_disk_cli encode_token)` to store the env var in the current shell.  \
+/// Similar to how works `eval $(ssh-agent)`  
+fn ui_encode_token() -> Result<(), DropboxBackupToExternalDiskError> {
     //input secret token like password in command line
     let token = inquire::Password::new("").without_confirmation().prompt()?;
     // return bash commands because of eval$(...) or
@@ -292,8 +294,8 @@ export DBX_KEY_2={token_enc}
     Ok(())
 }
 
-/// ui_test_connection
-fn ui_test_connection() -> Result<(), LibError> {
+/// Test connection.
+fn ui_test_connection() -> Result<(), DropboxBackupToExternalDiskError> {
     // communicate errors to user here (if needed)
     // send function pointer
     match lib::test_connection() {
@@ -305,53 +307,53 @@ fn ui_test_connection() -> Result<(), LibError> {
     }
 }
 
-/// check if external disk base path exists and then
-/// saves the base local path for later use like "/mnt/e/DropBoxBackup2"
-fn check_and_save_ext_disk_base_path(ext_disk_base_path: &Path) -> Result<(), LibError> {
+/// Check if external disk base path exists.  \
+///
+/// And then saves the base local path for later use in neutral crossplatform form like "/mnt/e/DropBoxBackup2/"  \
+/// Must end with slash.  
+fn check_and_save_ext_disk_base_path(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
     if !ext_disk_base_path.exists() {
-        println!(
-            "{RED}error: ext_disk_base_path not exists {}{RESET}",
-            ext_disk_base_path.to_string_lossy()
-        );
+        println!("{RED}error: ext_disk_base_path not exists {ext_disk_base_path}{RESET}");
         std::process::exit(1);
     }
-    let store_path = global_config().path_list_ext_disk_base_path;
-    std::fs::write(store_path, ext_disk_base_path.to_string_lossy().as_bytes())?;
+    let store_path = &global_config().path_list_ext_disk_base_path;
+    // must end with slash
+    store_path.write_str_to_file(ext_disk_base_path.add_end_slash()?.as_str())?;
     Ok(())
 }
 
-/// read ext_disk_base_path from file path_list_ext_disk_base_path
-fn get_ext_disk_base_path() -> Result<PathBuf, LibError> {
-    let store_path = global_config().path_list_ext_disk_base_path;
-    let ext_disk_base_path = std::fs::read_to_string(store_path)?;
-    let ext_disk_base_path = std::path::PathBuf::from(&ext_disk_base_path);
-    if ext_disk_base_path.to_string_lossy().is_empty() {
-        return Err(LibError::ErrorFromStr("ext_disk_base_path is empty!"));
+/// Read ext_disk_base_path from file path_list_ext_disk_base_path.  
+fn get_ext_disk_base_path() -> Result<CrossPathBuf, DropboxBackupToExternalDiskError> {
+    let store_path = &global_config().path_list_ext_disk_base_path;
+    let ext_disk_base_path = store_path.read_to_string()?;
+    let ext_disk_base_path = CrossPathBuf::new(&ext_disk_base_path)?;
+    if ext_disk_base_path.as_str().is_empty() {
+        return Err(DropboxBackupToExternalDiskError::ErrorFromStr("ext_disk_base_path is empty!"));
     }
     // return
     Ok(ext_disk_base_path)
 }
 
-/// empty lists created by compare
-pub fn empty_lists_compared() -> Result<(), LibError> {
+/// Empty lists created by compare.  
+pub fn empty_lists_compared() -> Result<(), DropboxBackupToExternalDiskError> {
     // empty the files, they will be created by compare
-    let mut file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+    let mut file_list_destination_readonly_files = FileTxt::open_for_read_and_write(&global_config().path_list_destination_readonly_files)?;
     file_list_destination_readonly_files.empty()?;
-    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+    let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_create_folders)?;
     file_list_for_create_folders.empty()?;
-    let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+    let mut file_list_for_download = FileTxt::open_for_read_and_write(&global_config().path_list_for_download)?;
     file_list_for_download.empty()?;
-    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+    let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_folders)?;
     file_list_for_trash_folders.empty()?;
-    let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+    let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_files)?;
     file_list_for_trash_files.empty()?;
-    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+    let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(&global_config().path_list_just_downloaded)?;
     file_list_just_downloaded.empty()?;
     Ok(())
 }
 
-/// list in a new thread, then receive messages to print on screen
-fn local_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
+/// List in a new thread, then receive messages to print on screen.
+fn local_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}List local.{RESET}");
     empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
@@ -368,13 +370,17 @@ fn local_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
     Ok(())
 }
 
-fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
+fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), DropboxBackupToExternalDiskError> {
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
-        let base_path = FileTxt::open_for_read(global_config().path_list_ext_disk_base_path)?.read_to_string()?;
-        let file_list_destination_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_files)?;
-        let file_list_destination_folders = FileTxt::open_for_read_and_write(global_config().path_list_destination_folders)?;
-        let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+        // Convert CrossPathBuf into current_os PathBuf and then String. Just once, before the loop.
+        let base_path = CrossPathBuf::new(&global_config().path_list_ext_disk_base_path.read_to_string()?)?
+            .to_path_buf_current_os()
+            .to_string_lossy()
+            .to_string();
+        let file_list_destination_files = FileTxt::open_for_read_and_write(&global_config().path_list_destination_files)?;
+        let file_list_destination_folders = FileTxt::open_for_read_and_write(&global_config().path_list_destination_folders)?;
+        let file_list_destination_readonly_files = FileTxt::open_for_read_and_write(&global_config().path_list_destination_readonly_files)?;
         // only the closure is actually spawned, because it is the return value of the block
         move || {
             // catch propagated errors and communicate errors to user or developer
@@ -394,7 +400,7 @@ fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<
     Ok(())
 }
 
-fn remote_list() -> Result<(), LibError> {
+fn remote_list() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}List remote.{RESET}");
     empty_lists_compared()?;
     ui_test_connection()?;
@@ -411,8 +417,8 @@ fn remote_list() -> Result<(), LibError> {
     Ok(())
 }
 
-/// list local and remote in a multiple threads, then receive messages to print on screen
-fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
+/// List local and remote in a multiple threads, then receive messages to print on screen.  
+fn all_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}List local and remote.{RESET}");
     empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
@@ -432,11 +438,11 @@ fn all_list(ext_disk_base_path: &Path) -> Result<(), LibError> {
     Ok(())
 }
 
-fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), LibError> {
+fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), DropboxBackupToExternalDiskError> {
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
-        let file_list_source_files = FileTxt::open_for_read_and_write(global_config().path_list_source_files)?;
-        let file_list_source_folders = FileTxt::open_for_read_and_write(global_config().path_list_source_folders)?;
+        let file_list_source_files = FileTxt::open_for_read_and_write(&global_config().path_list_source_files)?;
+        let file_list_source_folders = FileTxt::open_for_read_and_write(&global_config().path_list_source_folders)?;
         // only the closure is actually spawned, because it is the return value of the block
         move || {
             // catch propagated errors and communicate errors to user or developer
@@ -451,7 +457,7 @@ fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result
 }
 
 /// The backup files must not be readonly to allow copying the modified file from the remote.
-fn read_only_remove() -> Result<(), LibError> {
+fn read_only_remove() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Remove readonly attribute from files.{RESET}");
 
     // channel for thread communication for user interface
@@ -459,7 +465,7 @@ fn read_only_remove() -> Result<(), LibError> {
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(global_config().path_list_destination_readonly_files)?;
+        let mut file_destination_readonly_files = FileTxt::open_for_read_and_write(&global_config().path_list_destination_readonly_files)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
@@ -482,8 +488,8 @@ fn read_only_remove() -> Result<(), LibError> {
     Ok(())
 }
 
-/// compare files
-fn compare_files() -> Result<(), LibError> {
+/// Compare files.
+fn compare_files() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Compare files.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -510,17 +516,17 @@ fn compare_files() -> Result<(), LibError> {
     Ok(())
 }
 
-/// compare folders
-fn compare_folders() -> Result<(), LibError> {
+/// Compare folders.
+fn compare_folders() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Compare folders.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
-        let string_list_source_folder = FileTxt::open_for_read(global_config().path_list_source_folders)?.read_to_string()?;
-        let string_list_destination_folders = FileTxt::open_for_read(global_config().path_list_destination_folders)?.read_to_string()?;
-        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
-        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+        let string_list_source_folder = FileTxt::open_for_read(&global_config().path_list_source_folders)?.read_to_string()?;
+        let string_list_destination_folders = FileTxt::open_for_read(&global_config().path_list_destination_folders)?.read_to_string()?;
+        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_folders)?;
+        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_create_folders)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         // only the closure is actually spawned, because it is the return value of the block
@@ -549,15 +555,15 @@ fn compare_folders() -> Result<(), LibError> {
     Ok(())
 }
 
-// create folders
-fn create_folders() -> Result<(), LibError> {
+/// Create folders.
+fn create_folders() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Create folders from list.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_create_folders)?;
+        let mut file_list_for_create_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_create_folders)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         // only the closure is actually spawned, because it is the return value of the block
@@ -580,16 +586,16 @@ fn create_folders() -> Result<(), LibError> {
     Ok(())
 }
 
-// move or rename local files
-fn move_or_rename_local_files() -> Result<(), LibError> {
+/// Move or rename local files.
+fn move_or_rename_local_files() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Move or rename local files{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut path_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
-        let mut path_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
+        let mut path_list_for_trash_files = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_files)?;
+        let mut path_list_for_download = FileTxt::open_for_read_and_write(&global_config().path_list_for_download)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx_move_to_closure = ui_tx.clone();
         move || {
@@ -614,30 +620,28 @@ fn move_or_rename_local_files() -> Result<(), LibError> {
         if received == "." {
             // this special character is used to create like a progress bar
             print!("{}", received);
-            std::io::Write::flush(&mut std::io::stdout()).ok().expect("Could not flush stdout");
+            std::io::Write::flush(&mut std::io::stdout()).expect("Could not flush stdout");
             is_last_progress_bar = true;
+        } else if is_last_progress_bar {
+            // just newline, if last print was for progress_bar
+            println!();
         } else {
-            if is_last_progress_bar {
-                // just newline, if last print was for progress_bar
-                println!("");
-            } else {
-                println!("{}", received);
-            }
+            println!("{}", received);
         }
     }
 
     Ok(())
 }
 
-// trash files from list
-fn trash_files() -> Result<(), LibError> {
+/// Trash files from list.
+fn trash_files() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Trash files from list{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_files)?;
+        let mut file_list_for_trash_files = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_files)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
@@ -659,15 +663,15 @@ fn trash_files() -> Result<(), LibError> {
     Ok(())
 }
 
-// trash folders
-fn trash_folders() -> Result<(), LibError> {
+/// Trash folders.
+fn trash_folders() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Trash folders{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(global_config().path_list_for_trash_folders)?;
+        let mut file_list_for_trash_folders = FileTxt::open_for_read_and_write(&global_config().path_list_for_trash_folders)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
@@ -689,16 +693,16 @@ fn trash_folders() -> Result<(), LibError> {
     Ok(())
 }
 
-// download one file
-fn download_one_file(path_str: &str) -> Result<(), LibError> {
+/// Download one file.
+fn download_one_file(path_str: &str) -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Download one file{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let path_to_download = PathBuf::from(path_str);
-        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+        let path_to_download = CrossPathBuf::new(path_str)?;
+        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(&global_config().path_list_just_downloaded)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
@@ -720,16 +724,16 @@ fn download_one_file(path_str: &str) -> Result<(), LibError> {
     Ok(())
 }
 
-// download from list
-fn download_from_list() -> Result<(), LibError> {
+/// Download from list.
+fn download_from_list() -> Result<(), DropboxBackupToExternalDiskError> {
     println!("{YELLOW}Download from list{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let ext_disk_base_path = get_ext_disk_base_path()?;
-        let mut file_list_for_download = FileTxt::open_for_read_and_write(global_config().path_list_for_download)?;
-        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(global_config().path_list_just_downloaded)?;
+        let mut file_list_for_download = FileTxt::open_for_read_and_write(&global_config().path_list_for_download)?;
+        let mut file_list_just_downloaded = FileTxt::open_for_read_and_write(&global_config().path_list_just_downloaded)?;
         // Shadow the clone with the same name before the closure.
         let ui_tx = ui_tx.clone();
         move || {
