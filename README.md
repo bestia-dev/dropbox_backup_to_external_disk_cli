@@ -6,11 +6,11 @@
 [//]: # (auto_cargo_toml_to_md start)
 
 **CLI binary executable, one-way sync from Dropbox to external disc**  
-***version: 2025.925.1326 date: 2025-09-25 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
+***version: 2025.925.1335 date: 2025-09-25 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
 
  ![dropbox](https://img.shields.io/badge/dropbox-orange)
  ![maintained](https://img.shields.io/badge/maintained-green)
- ![work_in_progress](https://img.shields.io/badge/work_in_progress-orange)
+ ![ready-for-use](https://img.shields.io/badge/ready_for_use-green)
 
 [//]: # (auto_cargo_toml_to_md end)
 

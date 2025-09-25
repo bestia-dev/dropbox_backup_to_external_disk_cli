@@ -1,6 +1,6 @@
 [package]
 name = "dropbox_backup_to_external_disk_cli"
-version = "2025.925.1326"
+version = "2025.925.1335"
 description = "CLI binary executable, one-way sync from Dropbox to external disc"
 authors = ["bestia.dev"]
 homepage = "https://bestia.dev"
@@ -11,7 +11,7 @@ repository = "https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/
 # Allowed categories are listed here <https://crates.io/category_slugs>
 categories = ["programming"]
 # Keyword must be only one word: lowercase letters, hyphens(-) or numbers, less then 35 characters, at most 5 keywords per crate
-keywords = ["dropbox", "maintained", "work_in_progress"]
+keywords = ["dropbox", "maintained", "ready-for-use"]
 publish = false
 
 [dependencies]
