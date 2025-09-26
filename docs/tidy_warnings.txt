@@ -68,13 +68,26 @@ line 1 column 1 - Warning: inserting missing 'title' element
 ./docs/dropbox_backup_to_external_disk_cli/fn.trash_folders.html
 Document: "2" is not a file!
 
-line 1 column 2335 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 2335 - Warning: discarding unexpected <rustdoc-search>
-line 1 column 2351 - Warning: discarding unexpected </rustdoc-search>
-line 1 column 2673 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 2673 - Warning: discarding unexpected <rustdoc-toolbar>
-line 1 column 2690 - Warning: discarding unexpected </rustdoc-toolbar>
-line 1 column 1865 - Warning: trimming empty <button>
+line 1 column 2401 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2401 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 2417 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 2739 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2739 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 2756 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 1931 - Warning: trimming empty <button>
+This document has errors that must be fixed before
+using HTML Tidy to generate a tidied up version.
+
+./docs/dropbox_backup_to_external_disk_cli/fn.move_local_files.html
+Document: "2" is not a file!
+
+line 1 column 2341 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2341 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 2357 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 2682 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2682 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 2699 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 1871 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
 
@@ -114,6 +127,19 @@ line 1 column 2742 - Error: <rustdoc-toolbar> is not recognized! Did you mean to
 line 1 column 2742 - Warning: discarding unexpected <rustdoc-toolbar>
 line 1 column 2759 - Warning: discarding unexpected </rustdoc-toolbar>
 line 1 column 1914 - Warning: trimming empty <button>
+This document has errors that must be fixed before
+using HTML Tidy to generate a tidied up version.
+
+./docs/dropbox_backup_to_external_disk_cli/fn.print_next_step.html
+Document: "2" is not a file!
+
+line 1 column 2375 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2375 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 2391 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 2715 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2715 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 2732 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 1905 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
 
@@ -247,16 +273,16 @@ line 1 column 1926 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
 
-./docs/dropbox_backup_to_external_disk_cli/fn.move_or_rename_local_files.html
+./docs/dropbox_backup_to_external_disk_cli/fn.change_time_files.html
 Document: "2" is not a file!
 
-line 1 column 2361 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 2361 - Warning: discarding unexpected <rustdoc-search>
-line 1 column 2377 - Warning: discarding unexpected </rustdoc-search>
-line 1 column 2712 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 2712 - Warning: discarding unexpected <rustdoc-toolbar>
-line 1 column 2729 - Warning: discarding unexpected </rustdoc-toolbar>
-line 1 column 1891 - Warning: trimming empty <button>
+line 1 column 2346 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2346 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 2362 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 2688 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2688 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 2705 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 1876 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
 
@@ -436,6 +462,19 @@ line 1 column 3733 - Error: <rustdoc-toolbar> is not recognized! Did you mean to
 line 1 column 3733 - Warning: discarding unexpected <rustdoc-toolbar>
 line 1 column 3750 - Warning: discarding unexpected </rustdoc-toolbar>
 line 1 column 1872 - Warning: trimming empty <button>
+This document has errors that must be fixed before
+using HTML Tidy to generate a tidied up version.
+
+./docs/dropbox_backup_to_external_disk_cli/fn.rename_local_files.html
+Document: "2" is not a file!
+
+line 1 column 2345 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2345 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 2361 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 2688 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 2688 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 2705 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 1875 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
 
