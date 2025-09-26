@@ -40,17 +40,18 @@ impl lib::AppStateMethods for AppState {
 pub fn init_app_state() {
     // define paths in bin, not in lib
     let app_config = lib::AppConfig {
-        path_list_ext_disk_base_path: CrossPathBuf::new("tmp/temp_data/list_base_local_path.csv").expect("It is ok."),
-        path_list_source_files: CrossPathBuf::new("tmp/temp_data/list_source_files.csv").expect("It is ok."),
-        path_list_destination_files: CrossPathBuf::new("tmp/temp_data/list_destination_files.csv").expect("It is ok."),
-        path_list_source_folders: CrossPathBuf::new("tmp/temp_data/list_source_folders.csv").expect("It is ok."),
-        path_list_destination_folders: CrossPathBuf::new("tmp/temp_data/list_destination_folders.csv").expect("It is ok."),
-        path_list_destination_readonly_files: CrossPathBuf::new("tmp/temp_data/list_destination_readonly_files.csv").expect("It is ok."),
-        path_list_for_download: CrossPathBuf::new("tmp/temp_data/list_for_download.csv").expect("It is ok."),
-        path_list_for_trash_files: CrossPathBuf::new("tmp/temp_data/list_for_trash_files.csv").expect("It is ok."),
-        path_list_just_downloaded: CrossPathBuf::new("tmp/temp_data/list_just_downloaded.csv").expect("It is ok."),
-        path_list_for_trash_folders: CrossPathBuf::new("tmp/temp_data/list_for_trash_folders.csv").expect("It is ok."),
-        path_list_for_create_folders: CrossPathBuf::new("tmp/temp_data/list_for_create_folders.csv").expect("It is ok."),
+        path_list_ext_disk_base_path: CrossPathBuf::new("tmp/list_base_local_path.csv").expect("It is ok."),
+        path_list_source_files: CrossPathBuf::new("tmp/list_source_files.csv").expect("It is ok."),
+        path_list_destination_files: CrossPathBuf::new("tmp/list_destination_files.csv").expect("It is ok."),
+        path_list_source_folders: CrossPathBuf::new("tmp/list_source_folders.csv").expect("It is ok."),
+        path_list_destination_folders: CrossPathBuf::new("tmp/list_destination_folders.csv").expect("It is ok."),
+        path_list_readonly_files: CrossPathBuf::new("tmp/list_readonly_files.csv").expect("It is ok."),
+        path_list_for_download: CrossPathBuf::new("tmp/list_for_download.csv").expect("It is ok."),
+        path_list_for_trash_files: CrossPathBuf::new("tmp/list_for_trash_files.csv").expect("It is ok."),
+        path_list_just_downloaded: CrossPathBuf::new("tmp/list_just_downloaded.csv").expect("It is ok."),
+        path_list_for_trash_folders: CrossPathBuf::new("tmp/list_for_trash_folders.csv").expect("It is ok."),
+        path_list_for_create_folders: CrossPathBuf::new("tmp/list_for_create_folders.csv").expect("It is ok."),
+        path_list_for_change_time_files: CrossPathBuf::new("tmp/list_for_change_time_files.csv").expect("It is ok."),
     };
     let string_proba_mutex = std::sync::Mutex::new(String::from("proba"));
     let _ = lib::APP_STATE.set(Box::new(AppState {

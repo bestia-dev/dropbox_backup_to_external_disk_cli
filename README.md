@@ -6,7 +6,7 @@
 [//]: # (auto_cargo_toml_to_md start)
 
 **CLI binary executable, one-way sync from Dropbox to external disc**  
-***version: 2025.925.1335 date: 2025-09-25 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
+***version: 2025.926.1538 date: 2025-09-26 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
 
  ![dropbox](https://img.shields.io/badge/dropbox-orange)
  ![maintained](https://img.shields.io/badge/maintained-green)
@@ -15,9 +15,9 @@
 [//]: # (auto_cargo_toml_to_md end)
 
 [//]: # (auto_lines_of_code start)
-[![Lines in Rust code](https://img.shields.io/badge/Lines_in_Rust-677-green.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
-[![Lines in Doc comments](https://img.shields.io/badge/Lines_in_Doc_comments-45-blue.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
-[![Lines in Comments](https://img.shields.io/badge/Lines_in_comments-113-purple.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Rust code](https://img.shields.io/badge/Lines_in_Rust-867-green.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Doc comments](https://img.shields.io/badge/Lines_in_Doc_comments-48-blue.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
+[![Lines in Comments](https://img.shields.io/badge/Lines_in_comments-129-purple.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 [![Lines in examples](https://img.shields.io/badge/Lines_in_examples-0-yellow.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 [![Lines in tests](https://img.shields.io/badge/Lines_in_tests-0-orange.svg)](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)
 
@@ -38,11 +38,11 @@ Different user-interfaces need different workflows and the common library must a
 
 ## Cross compile to windows
 
-On my machine I have Windows11 with WSL/Debian. My external drive is exFAT and it works nice with windows. But from WSL it does not work well. WSL/Debian cannot change the datetime of files on the external drive. 
+On my machine I have Windows11 with WSL/Debian. My external drive is exFAT and it works nice with windows. But from WSL it does not work well. WSL/Debian cannot change the datetime of files on the external drive.
 
 Therefore I will cross compile to Windows, copy the exe file with `scp` and run it on Windows.
 
-From Windows it takes cold 16 seconds and hot 2 seconds to list the Local external drive folder. In WSL it takes forever. 
+From Windows it takes cold 16 seconds and hot 2 seconds to list the Local external drive folder. In WSL it takes forever.
 
 Copy the exe file from the container 'crustde' to win folder. Run in windows git-bash:
 
@@ -65,7 +65,7 @@ I use `cargo-auto` to write all repetitive tasks in `automation_tasks_rs`.
 
 There are a few manual steps for the security of you files on Dropbox. Authentication on internet is a complex topic.  
 You should be logged in Linux terminal (also in WSL2) with your account. So things you do in that session, are not visible to others. You will set some local environment variables that are private/secret to your linux Session.  After you logout from you Linux session these local environment variables will be deleted.  
-The executable will create a sub-directory `tmp/temp_data` in the current directory. Maybe it is best if you create a dedicated directory `~/dropbox_backup_to_external_disk_cli/` just for this executable and tmp/temp_data.
+The executable will create a sub-directory `tmp` in the current directory. Maybe it is best if you create a dedicated directory `~/dropbox_backup_to_external_disk_cli/` just for this executable and `tmp`.
 Download the latest release from [Github](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/releases) and make the file executable and enable auto-completion:
 
 ```bash
