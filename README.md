@@ -6,7 +6,7 @@
 [//]: # (auto_cargo_toml_to_md start)
 
 **CLI binary executable, one-way sync from Dropbox to external disc**  
-***version: 2025.928.1728 date: 2025-09-28 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
+***version: 2025.928.1813 date: 2025-09-28 author: [bestia.dev](https://bestia.dev) repository: [GitHub](https://github.com/bestia-dev/dropbox_backup_to_external_disk_cli/)***
 
  ![dropbox](https://img.shields.io/badge/dropbox-orange)
  ![maintained](https://img.shields.io/badge/maintained-green)
@@ -115,18 +115,25 @@ To make it permanent add this command to the file `~/.bashrc` or some other file
 
 Authorization on the internet is a mess. Dropbox api uses OAuth2.
 Every app must be authorized on Dropbox and have its own `app key` and `app secret`.  
-For commercial programs they probably embed them into the binary code somehow. But for OpenSource projects it is not possible to keep a secret. So the workaround is: every user must create its own new `dropbox app` exclusive only to him. Creating a new app is simple. This app will stay forever in `development status` in dropbox, to be more private and secure. The  
-`$ dropbox_backup_to_external_disk_cli --help`  
-has the detailed instructions.  
-Then every time before use we need generate the "short-lived access token" for security reasons. There is the possibility to choose "no expiration" token, but I don't like it. Dropbox backup is used rarely and it is not super frustrating to make few clicks for security of your precious files. Having a "no expiration" token is like having another password for the hackers to try to hack. I like more the "short-lived" token. When I'm not using this backup program, there is no access token at all.  
-TODO: use the complete OAuth protocol instead of short-lived token
 
-![dropbox_2](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_2.png "dropbox_2") ![dropbox_1](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_1.png "dropbox_1")
-Use this command to store the token (encrypted) in env variable. It will ask for your interactive input like a secret password.
+![dropbox_2](https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib/raw/main/images/dropbox_2.png "dropbox_2")
 
-```bash
-dropbox_backup_to_external_disk_cli encode_token
-```
+Then use `dropbox_backup_to_external_disk_lib test` to start the authorization process and follow carefully the instructions.  
+
+## Development details
+
+Read the development details in a separate md file:
+[DEVELOPMENT.md](DEVELOPMENT.md)
+
+## Releases changelog
+
+Read the releases changelog in a separate md file:
+[RELEASES.md](RELEASES.md)
+
+## TODO
+
+Testing with a free basic account with not too much files and folders.
+And code happily ever after...
 
 ## Open-source and free as a beer
 
