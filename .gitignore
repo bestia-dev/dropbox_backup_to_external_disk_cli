@@ -23,3 +23,5 @@ Cargo.lock
 
 # Temporary files are not needed in the repository.
 /tmp/
+
+dropbox_api_config.json

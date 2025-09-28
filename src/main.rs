@@ -33,6 +33,7 @@ fn main() {
 }
 
 fn main_with_catch_errors() -> Result<(), DropboxBackupToExternalDiskError> {
+    dropbox_backup_to_external_disk_lib::dropbox_api_config_initialize();
     // init the global struct APP_STATE defined in the lib project
     app_state_mod::init_app_state();
 
