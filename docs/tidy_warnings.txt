@@ -455,12 +455,12 @@ using HTML Tidy to generate a tidied up version.
 ./docs/dropbox_backup_to_external_disk_cli/index.html
 Document: "2" is not a file!
 
-line 1 column 3486 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 3486 - Warning: discarding unexpected <rustdoc-search>
-line 1 column 3502 - Warning: discarding unexpected </rustdoc-search>
-line 1 column 3733 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
-line 1 column 3733 - Warning: discarding unexpected <rustdoc-toolbar>
-line 1 column 3750 - Warning: discarding unexpected </rustdoc-toolbar>
+line 1 column 3711 - Error: <rustdoc-search> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 3711 - Warning: discarding unexpected <rustdoc-search>
+line 1 column 3727 - Warning: discarding unexpected </rustdoc-search>
+line 1 column 3958 - Error: <rustdoc-toolbar> is not recognized! Did you mean to enable the custom-tags option?
+line 1 column 3958 - Warning: discarding unexpected <rustdoc-toolbar>
+line 1 column 3975 - Warning: discarding unexpected </rustdoc-toolbar>
 line 1 column 1872 - Warning: trimming empty <button>
 This document has errors that must be fixed before
 using HTML Tidy to generate a tidied up version.
