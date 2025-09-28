@@ -10,12 +10,13 @@
 mod app_state_mod;
 mod crossterm_cli_mod;
 
+use anyhow::Result;
 use crossplatform_path::CrossPathBuf;
 use crossterm_cli_mod::*;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-use dropbox_backup_to_external_disk_lib::{global_config, DropboxBackupToExternalDiskError};
+use dropbox_backup_to_external_disk_lib::global_config;
 use lib::FileTxt;
 
 fn main() {
@@ -32,8 +33,8 @@ fn main() {
     }
 }
 
-fn main_with_catch_errors() -> Result<(), DropboxBackupToExternalDiskError> {
-    dropbox_backup_to_external_disk_lib::dropbox_api_config_initialize();
+fn main_with_catch_errors() -> Result<()> {
+    lib::dropbox_api_config_initialize();
     // init the global struct APP_STATE defined in the lib project
     app_state_mod::init_app_state();
 
@@ -53,7 +54,7 @@ fn main_with_catch_errors() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Look at the arguments and route to appropriate function.
-fn argument_router() -> Result<(), DropboxBackupToExternalDiskError> {
+fn argument_router() -> Result<()> {
     match std::env::args().nth(1).as_deref() {
         None | Some("--help") | Some("-h") => print_help(),
         Some("completion") => completion(),
@@ -81,18 +82,14 @@ fn argument_router() -> Result<(), DropboxBackupToExternalDiskError> {
             // the command local_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
                 Some(ext_disk_base_path) => local_list(&CrossPathBuf::new(ext_disk_base_path)?),
-                None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
-                    "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
-                ))),
+                None => anyhow::bail!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
             }
         }
         Some("all_list") => {
             // the command all_list must have 1 argument: the path to local external disk folder
             match std::env::args().nth(2).as_deref() {
                 Some(ext_disk_base_path) => all_list(&CrossPathBuf::new(ext_disk_base_path)?),
-                None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
-                    "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
-                ))),
+                None => anyhow::bail!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
             }
         }
         Some("read_only_remove") => read_only_remove(),
@@ -106,14 +103,10 @@ fn argument_router() -> Result<(), DropboxBackupToExternalDiskError> {
         Some("trash_folders") => trash_folders(),
         Some("one_file_download") => match std::env::args().nth(2).as_deref() {
             Some(path_str) => download_one_file(path_str),
-            None => Err(DropboxBackupToExternalDiskError::ErrorFromString(format!(
-                "{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"
-            ))),
+            None => anyhow::bail!("{RED}Missing arguments. Try `dropbox_backup_to_external_disk_cli --help`{RESET}"),
         },
         Some("download_from_list") => download_from_list(),
-        _ => Err(DropboxBackupToExternalDiskError::ErrorFromStr(
-            "Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`",
-        )),
+        _ => anyhow::bail!("Unrecognized command line arguments. Try `dropbox_backup_to_external_disk_cli --help`",),
     }
 }
 
@@ -122,7 +115,7 @@ fn argument_router() -> Result<(), DropboxBackupToExternalDiskError> {
 /// `complete -C "dropbox_backup_to_external_disk_cli completion" dropbox_backup_to_external_disk_cli`
 /// `complete -p`  - shows all the completion commands
 /// `complete -r xxx` - deletes a completion command
-fn completion() -> Result<(), DropboxBackupToExternalDiskError> {
+fn completion() -> Result<()> {
     // println one, more or all sub_commands
     fn completion_return_one_or_more_sub_commands(sub_commands: Vec<&str>, word_being_completed: &str) {
         let mut sub_found = false;
@@ -186,7 +179,7 @@ fn completion() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Print help.
-fn print_help() -> Result<(), DropboxBackupToExternalDiskError> {
+fn print_help() -> Result<()> {
     let date = chrono::offset::Utc::now().format("%Y%m%dT%H%M%SZ");
     // app_config variable will lock the mutex until it is in scope. For this short function this is ok.
     let path_list_source_files = &global_config().path_list_source_files;
@@ -291,7 +284,7 @@ fn print_help() -> Result<(), DropboxBackupToExternalDiskError> {
 /// The result of the function must be correct bash commands. They must be executed in the current shell and not in a sub-shell.  \
 /// This command should be executed with `eval $(dropbox_backup_to_external_disk_cli encode_token)` to store the env var in the current shell.  \
 /// Similar to how works `eval $(ssh-agent)`  
-fn ui_encode_token() -> Result<(), DropboxBackupToExternalDiskError> {
+fn ui_encode_token() -> Result<()> {
     //input secret token like password in command line
     let token = inquire::Password::new("").without_confirmation().prompt()?;
     // return bash commands because of eval$(...) or
@@ -309,7 +302,7 @@ export DBX_KEY_2={token_enc}
 }
 
 /// Test connection.
-fn ui_test_connection() -> Result<(), DropboxBackupToExternalDiskError> {
+fn ui_test_connection() -> Result<()> {
     // communicate errors to user here (if needed)
     // send function pointer
     match lib::test_connection() {
@@ -317,7 +310,7 @@ fn ui_test_connection() -> Result<(), DropboxBackupToExternalDiskError> {
             println!("Test connection and authorization ok.");
             Ok(())
         }
-        Err(err) => Err(err),
+        Err(err) => anyhow::bail!(err),
     }
 }
 
@@ -325,7 +318,7 @@ fn ui_test_connection() -> Result<(), DropboxBackupToExternalDiskError> {
 ///
 /// And then saves the base local path for later use in neutral crossplatform form like "e:/DropBoxBackup2/"  \
 /// Must end with slash.  
-fn check_and_save_ext_disk_base_path(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
+fn check_and_save_ext_disk_base_path(ext_disk_base_path: &CrossPathBuf) -> Result<()> {
     println!("CrossPathBuf: {}", ext_disk_base_path);
     if !ext_disk_base_path.exists() {
         println!("{RED}error: ext_disk_base_path not exists {ext_disk_base_path}{RESET}");
@@ -338,19 +331,19 @@ fn check_and_save_ext_disk_base_path(ext_disk_base_path: &CrossPathBuf) -> Resul
 }
 
 /// Read ext_disk_base_path from file path_list_ext_disk_base_path.  
-fn get_ext_disk_base_path() -> Result<CrossPathBuf, DropboxBackupToExternalDiskError> {
+fn get_ext_disk_base_path() -> Result<CrossPathBuf> {
     let store_path = &global_config().path_list_ext_disk_base_path;
     let ext_disk_base_path = store_path.read_to_string()?;
     let ext_disk_base_path = CrossPathBuf::new(&ext_disk_base_path)?;
     if ext_disk_base_path.as_str().is_empty() {
-        return Err(DropboxBackupToExternalDiskError::ErrorFromStr("ext_disk_base_path is empty!"));
+        anyhow::bail!("ext_disk_base_path is empty!");
     }
     // return
     Ok(ext_disk_base_path)
 }
 
 /// Empty lists created by compare.  
-pub fn empty_lists_compared() -> Result<(), DropboxBackupToExternalDiskError> {
+pub fn empty_lists_compared() -> Result<()> {
     // empty the files, they will be created by compare
     let mut file_list_readonly_files = FileTxt::open_for_read_and_write(&global_config().path_list_readonly_files)?;
     file_list_readonly_files.empty()?;
@@ -369,7 +362,7 @@ pub fn empty_lists_compared() -> Result<(), DropboxBackupToExternalDiskError> {
     Ok(())
 }
 
-fn remote_list() -> Result<(), DropboxBackupToExternalDiskError> {
+fn remote_list() -> Result<()> {
     println!("{YELLOW}List remote.{RESET}");
     empty_lists_compared()?;
     ui_test_connection()?;
@@ -392,7 +385,7 @@ fn remote_list() -> Result<(), DropboxBackupToExternalDiskError> {
     Ok(())
 }
 
-fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), DropboxBackupToExternalDiskError> {
+fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<()> {
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         let file_list_source_files = FileTxt::open_for_read_and_write(&global_config().path_list_source_files)?;
@@ -411,7 +404,7 @@ fn spawn_list_remote(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result
 }
 
 /// List in a new thread, then receive messages to print on screen.
-fn local_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
+fn local_list(ext_disk_base_path: &CrossPathBuf) -> Result<()> {
     println!("{YELLOW}List local.{RESET}");
     empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
@@ -434,7 +427,7 @@ fn local_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToEx
     Ok(())
 }
 
-fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<(), DropboxBackupToExternalDiskError> {
+fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<()> {
     std::thread::spawn({
         // Prepare variables to be moved/captured to the closure. All is isolated in a block scope.
         // Convert CrossPathBuf into current_os PathBuf and then String. Just once, before the loop.
@@ -465,7 +458,7 @@ fn spawn_list_local(ui_tx: std::sync::mpsc::Sender<(String, String)>) -> Result<
 }
 
 /// List local and remote in a multiple threads, then receive messages to print on screen.  
-fn all_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExternalDiskError> {
+fn all_list(ext_disk_base_path: &CrossPathBuf) -> Result<()> {
     println!("{YELLOW}List local and remote.{RESET}");
     empty_lists_compared()?;
     check_and_save_ext_disk_base_path(ext_disk_base_path)?;
@@ -492,7 +485,7 @@ fn all_list(ext_disk_base_path: &CrossPathBuf) -> Result<(), DropboxBackupToExte
 }
 
 /// The backup files must not be readonly to allow copying the modified file from the remote.
-fn read_only_remove() -> Result<(), DropboxBackupToExternalDiskError> {
+fn read_only_remove() -> Result<()> {
     println!("{YELLOW}Remove readonly attribute from files.{RESET}");
 
     // channel for thread communication for user interface
@@ -525,7 +518,7 @@ fn read_only_remove() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Compare folders.
-fn compare_folders() -> Result<(), DropboxBackupToExternalDiskError> {
+fn compare_folders() -> Result<()> {
     println!("{YELLOW}Compare folders.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -573,7 +566,7 @@ fn compare_folders() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Create folders.
-fn create_folders() -> Result<(), DropboxBackupToExternalDiskError> {
+fn create_folders() -> Result<()> {
     println!("{YELLOW}Create folders from list.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -605,7 +598,7 @@ fn create_folders() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Compare files.
-fn compare_files() -> Result<(), DropboxBackupToExternalDiskError> {
+fn compare_files() -> Result<()> {
     println!("{YELLOW}Compare files.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -635,7 +628,7 @@ fn compare_files() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Depending on the last_Step the next step is printed.
-fn print_next_step(mut last_step: &str) -> Result<(), DropboxBackupToExternalDiskError> {
+fn print_next_step(mut last_step: &str) -> Result<()> {
     println!("  {YELLOW}After {last_step} run:{RESET}");
 
     if last_step == "compare_files" {
@@ -706,7 +699,7 @@ fn print_next_step(mut last_step: &str) -> Result<(), DropboxBackupToExternalDis
 }
 
 /// Change time of files.
-fn change_time_files() -> Result<(), DropboxBackupToExternalDiskError> {
+fn change_time_files() -> Result<()> {
     println!("{YELLOW}Change datetime of files from list.{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -739,7 +732,7 @@ fn change_time_files() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Move local files.
-fn move_local_files() -> Result<(), DropboxBackupToExternalDiskError> {
+fn move_local_files() -> Result<()> {
     println!("{YELLOW}Move local files{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -788,7 +781,7 @@ fn move_local_files() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Rename local files.
-fn rename_local_files() -> Result<(), DropboxBackupToExternalDiskError> {
+fn rename_local_files() -> Result<()> {
     println!("{YELLOW}Rename local files{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -837,7 +830,7 @@ fn rename_local_files() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Trash files from list.
-fn trash_files() -> Result<(), DropboxBackupToExternalDiskError> {
+fn trash_files() -> Result<()> {
     println!("{YELLOW}Trash files from list{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -869,7 +862,7 @@ fn trash_files() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Download from list.
-fn download_from_list() -> Result<(), DropboxBackupToExternalDiskError> {
+fn download_from_list() -> Result<()> {
     println!("{YELLOW}Download from list{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -907,7 +900,7 @@ fn download_from_list() -> Result<(), DropboxBackupToExternalDiskError> {
 }
 
 /// Download one file.
-fn download_one_file(path_str: &str) -> Result<(), DropboxBackupToExternalDiskError> {
+fn download_one_file(path_str: &str) -> Result<()> {
     println!("{YELLOW}Download one file{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();
@@ -938,7 +931,7 @@ fn download_one_file(path_str: &str) -> Result<(), DropboxBackupToExternalDiskEr
 }
 
 /// Trash folders must be the last command, to avoid deleting before move or rename.
-fn trash_folders() -> Result<(), DropboxBackupToExternalDiskError> {
+fn trash_folders() -> Result<()> {
     println!("{YELLOW}Trash folders{RESET}");
     // channel for thread communication for user interface
     let (ui_tx, ui_rx) = std::sync::mpsc::channel();

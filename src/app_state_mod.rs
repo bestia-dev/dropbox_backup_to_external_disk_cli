@@ -5,7 +5,6 @@ use std::sync::MutexGuard;
 
 // use exported code from the lib project
 use dropbox_backup_to_external_disk_lib as lib;
-use dropbox_backup_to_external_disk_lib::DropboxBackupToExternalDiskError;
 
 /// AppState is used as a global variable/struct.
 /// AppState struct contains only private fields. Some are immutable and other are mutable behind a Mutex.
@@ -23,7 +22,7 @@ struct AppState {
 /// implementation of AppStateMethods functions that is defined in the lib project
 /// and will be used in the lib project, because I want the lib project to have no idea where the tokens are stored.
 impl lib::AppStateMethods for AppState {
-    fn load_keys_from_io(&self) -> Result<(String, String), DropboxBackupToExternalDiskError> {
+    fn load_keys_from_io(&self) -> lib::Result<(String, String)> {
         let master_key = std::env::var("DBX_KEY_1")?;
         let token_enc = std::env::var("DBX_KEY_2")?;
         Ok((master_key, token_enc))
