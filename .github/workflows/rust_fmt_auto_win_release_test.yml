@@ -1,0 +1,63 @@
+name: rust_fmt_auto_win_release_test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust_fmt_auto_win_release_test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+
+    - name: force newer rustc
+      run: rustup update
+
+    - name: cargo fmt -- --check
+      run: cargo fmt -- --check
+      
+    - name: cross_platform_1
+      run: sudo apt-get install -y mingw-w64 
+
+    - name: cross_platform_2
+      run: rustup target add x86_64-pc-windows-gnu
+
+    - name: Run cache for rust dependencies
+      uses: Swatinem/rust-cache@v2.7.7
+
+    - name: Configure sccache
+      run: printf "RUSTC_WRAPPER=sccache\n" >> $GITHUB_ENV; printf "SCCACHE_GHA_ENABLED=true\n" >> $GITHUB_ENV
+
+    - name: Run sccache-cache for artifacts
+      uses: mozilla-actions/sccache-action@v0.0.8
+      
+    - name: cargo clippy --target x86_64-pc-windows-gnu
+      run: cargo clippy --target x86_64-pc-windows-gnu
+
+    - name: install and cache cargo-auto
+      uses: baptiste0928/cargo-install@v3.3.0
+      with:
+        crate: cargo-auto
+
+    - name: Cache for automation tasks
+      uses: actions/cache@v4.2.2
+      with:
+        path: |
+          automation_tasks_rs/.file_hashes.json 
+          automation_tasks_rs/target 
+        key: automation_tasks_rs
+
+    - name: cargo auto win_release
+      run: cargo auto win_release
+
+    - name: cargo auto test
+      run: cargo auto test
+
