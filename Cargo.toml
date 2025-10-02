@@ -15,7 +15,10 @@ keywords = ["dropbox", "maintained", "ready-for-use"]
 publish = false
 
 [dependencies]
-dropbox_backup_to_external_disk_lib = { path = "../dropbox_backup_to_external_disk_lib" }
+# for development it is easier to use the path dependency
+# dropbox_backup_to_external_disk_lib = { path = "../dropbox_backup_to_external_disk_lib" }
+# before git push, because of github actions, I must change it and use the git dependency
+dropbox_backup_to_external_disk_lib = { git = "https://github.com/bestia-dev/dropbox_backup_to_external_disk_lib.git"}
 
 log = "0.4.22"
 pretty_env_logger="0.5.0"
