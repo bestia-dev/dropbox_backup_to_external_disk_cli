@@ -51,8 +51,8 @@ fn match_arguments_and_call_tasks(mut args: std::env::Args) {
                 println!("  {YELLOW}Running automation task: {task}{RESET}");
                 if &task == "build" {
                     task_build();
-                } else if &task == "release_win" {
-                    task_release_win();
+                } else if &task == "win_release" {
+                    task_win_release();
                 } else if &task == "doc" {
                     task_doc();
                 } else if &task == "test" {
@@ -126,7 +126,7 @@ fn completion() {
     if last_word == "cargo-auto" || last_word == "auto" {
         let sub_commands = vec![
             "build",
-            "release_win",
+            "win_release",
             "doc",
             "test",
             "commit_and_push",
@@ -171,7 +171,7 @@ fn task_build() {
     {YELLOW}Execute binary:{RESET}
 {GREEN}{package_name} --help{RESET}
     {YELLOW}if ok then{RESET}
-{GREEN}cargo auto release_win{RESET}
+{GREEN}cargo auto win_release{RESET}
 "#,
         package_name = cargo_toml.package_name(),
     );
@@ -180,7 +180,7 @@ fn task_build() {
 
 /// cargo build --release --target x86_64-pc-windows-gnu
 /// TODO: try cross compile to windows, because Linux has problems with file datetimes on external disk
-fn task_release_win() {
+fn task_win_release() {
     let cargo_toml = cl::CargoToml::read();
     cl::auto_version_increment_semver_or_date();
     cl::auto_cargo_toml_to_md();
@@ -198,7 +198,7 @@ fn task_release_win() {
 
     println!(
         r#"
-    {YELLOW}After `cargo auto release_win`, copy the exe file into windows and run the compiled binary{RESET}
+    {YELLOW}After `cargo auto win_release`, copy the exe file into windows and run the compiled binary{RESET}
     {YELLOW}Run in Windows git-bash:{RESET}
 {GREEN}cd /c/Users/Luciano/git-bash/rustprojects/dropbox_backup_to_external_disk_cli{RESET}
 {GREEN}scp rustdevuser@crustde:/home/rustdevuser/rustprojects/dropbox_backup_to_external_disk_cli/target/x86_64-pc-windows-gnu/release/dropbox_backup_to_external_disk_cli.exe /c/Users/Luciano/git-bash/rustprojects/dropbox_backup_to_external_disk_cli/{RESET}
